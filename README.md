@@ -1,2 +1,6 @@
-# progetto-sistemi
-cit: "speriamo di riprendere tra 15 minuti sperando non ci rompano le palle"
+# MultiPandOS
+
+To compile the project:
+```bash
+mkdir -p build && pushd build && cmake .. && make && popd
+```
