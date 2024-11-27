@@ -11,10 +11,12 @@ pcbfree_table[0] aggiunto...
 
 */
 void initPcbs() {
- INIT_LIST_HEAD(&pcbFree_h);
+struct list_head *lista = &pcbFree_h.next;
+ INIT_LIST_HEAD(&lista);
 for (int i = 0; i <MAXPROC; i++){
-            list_add(&pcbFree_table[i], &pcbFree_h); // agggiunge per pcbFree_table la lista corrispettiva nella lista.
+            list_add(&pcbFree_table[i], &lista); // agggiunge per pcbFree_table la lista corrispettiva nella lista.
         }
+ pcbFree_h.prev = &lista;
 }
 
 void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella coda
@@ -24,6 +26,11 @@ void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella c
 }
 
 pcb_t* allocPcb() {
+   if (list_empty(&pcbFree_h)) return NULL; // rimuovo quello inserito per prima e poi dopo quelli dopo (FIFO)
+   pcb_t* pcb_rimosso = &pcbFree_h.next;
+   list_del(&pcbFree_h.next);
+   INIT_LIST_HEAD(pcb_rimosso);
+   return pcb_rimosso;
 }
 
 void mkEmptyProcQ(struct list_head* head) {
