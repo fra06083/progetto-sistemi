@@ -6,8 +6,11 @@ static int next_pid = 1; // prossimo id del processo
 
 /*
 
-schemino
-pcbfree_table[0] aggiunto...
+schema
+pcbfree_table[0] aggiunto a head.next...
+pcbfree_table[1] aggiunto a head.next->next e mette head.next->prev = head.next...
+....
+passaggio finale SENTINELLA.prev = ultimo della lista
 
 */
 void initPcbs() {
@@ -22,7 +25,7 @@ for (int i = 0; i <MAXPROC; i++){
  pcbFree_h.prev = &lista;
 }
 
-void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella coda
+void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella coda ?? non chiede di fare nessuna condizione
 
    list_add_tail(&p, &pcbFree_h);
 
@@ -54,7 +57,9 @@ pcb_t* removeProcQ(struct list_head* head) {
 pcb_t* outProcQ(struct list_head* head, pcb_t* p) {
 }
 
-int emptyChild(pcb_t* p) {
+int emptyChild(pcb_t* p) { // non so se ha senso sinceramente da cambiare e confermare
+   struct list_head* child = &p->p_child;
+   return (list_empty(child));
 }
 
 void insertChild(pcb_t* prnt, pcb_t* p) {
