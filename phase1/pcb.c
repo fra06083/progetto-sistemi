@@ -6,13 +6,15 @@ static int next_pid = 1; // prossimo id del processo
 
 /*
 
-
+schemino
+pcbfree_table[0] aggiunto...
 
 */
 void initPcbs() {
  INIT_LIST_HEAD(&pcbFree_h);
-for (int i = 0; i<MAXPROC; i++){
-}
+for (int i = 0; i <MAXPROC; i++){
+            list_add(&pcbFree_table[i], &pcbFree_h); // agggiunge per pcbFree_table la lista corrispettiva nella lista.
+        }
 }
 
 void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree ()
