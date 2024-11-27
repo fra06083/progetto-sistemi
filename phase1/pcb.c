@@ -17,9 +17,10 @@ for (int i = 0; i <MAXPROC; i++){
         }
 }
 
-void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree ()
-   // pcb_PTR lista = 
-   // for (int i = 0)
+void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella coda
+
+   list_add_tail(&p, &pcbFree_h);
+
 }
 
 pcb_t* allocPcb() {
