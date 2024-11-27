@@ -12,6 +12,9 @@ pcbfree_table[0] aggiunto...
 */
 void initPcbs() {
 struct list_head *lista = &pcbFree_h.next;
+/* essendo la sentinella non un puntatore 
+ma una struttura inizializzo .next per poi prev = ultimo elemento salvato
+*/
  INIT_LIST_HEAD(&lista);
 for (int i = 0; i <MAXPROC; i++){
             list_add(&pcbFree_table[i], &lista); // agggiunge per pcbFree_table la lista corrispettiva nella lista.
