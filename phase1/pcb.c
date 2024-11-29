@@ -45,16 +45,37 @@ void mkEmptyProcQ(struct list_head* head) {
 int emptyProcQ(struct list_head* head) {
 }
 
+/*
+Insert the PCB pointed by p into the process queue whose head pointer is pointed to by head.
+*/
 void insertProcQ(struct list_head* head, pcb_t* p) {
+    list_add_tail(&p->p_list, head);
 }
 
+/*
+Return a pointer to the first PCB from the process queue whose head is pointed to by head. Do
+not remove this PCB from the process queue. Return NULL if the process queue is empty.
+*/
 pcb_t* headProcQ(struct list_head* head) {
+    if(emptyProcQ(head)) return NULL;
+    else return (container_of(head->next, pcb_t, p_list));
 }
 
+/*
+Remove the first (i.e. head) element from the process queue whose head pointer is pointed to
+by head. Return NULL if the process queue was initially empty; otherwise return the pointer
+to the removed element.
+*/
 pcb_t* removeProcQ(struct list_head* head) {
 }
 
+/*
+Remove the PCB pointed to by p from the process queue whose head pointer is pointed to by
+head. If the desired entry is not in the indicated queue (an error condition), return NULL;
+otherwise, return p. Note that p can point to any element of the process queue.
+*/
 pcb_t* outProcQ(struct list_head* head, pcb_t* p) {
+
 }
 
 int emptyChild(pcb_t* p) { // non so se ha senso sinceramente da cambiare e confermare
@@ -252,5 +273,4 @@ pcb_t* outChild(pcb_t *p) {
     return p;
 
 }
-
 */
