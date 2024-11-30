@@ -1,6 +1,6 @@
 #include "./headers/pcb.h"
 
-static struct list_head pcbFree_h; // sentinella della lista dei processi liberi o non utilizzati, NON NE FA PARTE.
+static struct list_head pcbFree_h; // sentinella della lista dei processi liberi o non utilizzati, NON NE FA PARTE. 
 static pcb_t pcbFree_table[MAXPROC]; // tabella processi
 static int next_pid = 1; // prossimo id del processo
 
@@ -15,20 +15,18 @@ passaggio finale SENTINELLA.prev = ultimo della lista
 */
 void initPcbs() {
 struct list_head *lista = &pcbFree_h.next;
-/* essendo la sentinella non un puntatore 
+/* essendo la sentinella non un puntatore    //D:? Il puntatore .next della sentinella NON e' mai NULL spero? 
 ma una struttura inizializzo .next per poi prev = ultimo elemento salvato
 */
- INIT_LIST_HEAD(&lista);
-for (int i = 0; i <MAXPROC; i++){
-            list_add(&pcbFree_table[i], lista); // agggiunge per pcbFree_table la lista corrispettiva nella lista.
-        }
- pcbFree_h.prev = &lista;
+INIT_LIST_HEAD(&lista);
+    for (int i = 0; i <MAXPROC; i++){
+        list_add(&pcbFree_table[i], lista); // D: agggiunge per pcbFree_table la lista corrispettiva nella lista.
+    }
+    pcbFree_h.prev = &lista;   //D: qua ci vorrebbe anche &lista.next = pcbFree_h secondo me 
 }
 
 void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella coda ?? non chiede di fare nessuna condizione
-
-   list_add_tail(&p, &pcbFree_h);
-
+    list_add_tail(&p, &pcbFree_h);
 }
 
 pcb_t* allocPcb() {
@@ -39,17 +37,21 @@ pcb_t* allocPcb() {
    return pcb_rimosso;
 }
 
-void mkEmptyProcQ(struct list_head* head) {
+void mkEmptyProcQ(struct list_head* head) { //head è il puntatore alla testa della lista (vuota) che verrà riempita coi PCB's 
+    //Inizializzo una struct list_head (esistente) vuota 
+    INIT_LIST_HEAD(head);     
 }
 
 int emptyProcQ(struct list_head* head) {
+    if(list_empty(head)) return TRUE;
+    else return FALSE; 
 }
 
 /*
 Insert the PCB pointed by p into the process queue whose head pointer is pointed to by head.
 */
 void insertProcQ(struct list_head* head, pcb_t* p) {
-    list_add_tail(&p->p_list, head);
+    list_add_tail(&p->p_list, head); 
 }
 
 /*
