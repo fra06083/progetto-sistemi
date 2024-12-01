@@ -68,7 +68,15 @@ Remove the first (i.e. head) element from the process queue whose head pointer i
 by head. Return NULL if the process queue was initially empty; otherwise return the pointer
 to the removed element.
 */
+
 pcb_t* removeProcQ(struct list_head* head) {
+    if( head == NULL || head->next == head) // se lista vuota ritorna NULL
+        return NULL;
+    head->next->next->prev = head;  // il prev del secondo elemento ora punta alla testa
+    pcb_t *removed_pcb = (pcb_t *)((char *)head->next - offsetof(pcb_t, p_list)); //???
+    head->next = head->next->next;  // il next di head ora punta al secondo elemento
+    return removed_pcb;
+    
 }
 
 /*
@@ -77,7 +85,25 @@ head. If the desired entry is not in the indicated queue (an error condition), r
 otherwise, return p. Note that p can point to any element of the process queue.
 */
 pcb_t* outProcQ(struct list_head* head, pcb_t* p) {
+    if (head == NULL || p == NULL || head->next == head)
+        return NULL;
+    // Scorri la lista per cercare il nodo p
+    struct list_head *current = head->next;
+    while (current != head) 
+    {
+            pcb_t *current_pcb = (pcb_t *)((char *)current - offsetof(pcb_t, p_list));  ////?????
+            if (current_pcb == p) 
+            {
+                // Nodo trovato, aggiorna i puntatori per rimuoverlo
+                current->prev->next = current->next;
+                current->next->prev = current->prev;
+                return p; // Restituisci il PCB rimosso
+            }
+        current = current->next; // Passa al nodo successivo
+    }
 
+    // Nodo non trovato nella coda
+    return NULL;
 }
 
 int emptyChild(pcb_t* p) { // non so se ha senso sinceramente da cambiare e confermare
