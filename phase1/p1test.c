@@ -124,10 +124,11 @@ int main(void) {
     int i;
 
     initPcbs();
-    addokbuf("Initialized process control blocks   \n");
+    addokbuf("Initialized process control blocks PROVAPROVA   \n");
 
     /* Check allocProc */
     for (i = 0; i < MAXPROC; i++) {
+
         if ((procp[i] = allocPcb()) == NULL)
             adderrbuf("allocPcb: unexpected NULL   ");
     }
