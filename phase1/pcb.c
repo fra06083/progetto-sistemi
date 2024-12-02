@@ -1,5 +1,5 @@
 #include "./headers/pcb.h"
-
+#include "../klog.c"
 static struct list_head pcbFree_h; // sentinella della lista dei processi liberi o non utilizzati, NON NE FA PARTE. 
 static pcb_t pcbFree_table[MAXPROC]; // tabella processi
 static int next_pid = 1; // prossimo id del processo
@@ -13,27 +13,43 @@ pcbfree_table[1] aggiunto a head.next->next e mette head.next->prev = head.next.
 passaggio finale SENTINELLA.prev = ultimo della lista
 
 */
-void initPcbs() {
-struct list_head *lista = &pcbFree_h.next;
-/* essendo la sentinella non un puntatore    //D:? Il puntatore .next della sentinella NON e' mai NULL spero? 
-ma una struttura inizializzo .next per poi prev = ultimo elemento salvato
-*/
-INIT_LIST_HEAD(&lista);
-    for (int i = 0; i <MAXPROC; i++){
-        list_add(&pcbFree_table[i], lista); // D: agggiunge per pcbFree_table la lista corrispettiva nella lista.
+void initPcbs() {                                                                                                                        
+   INIT_LIST_HEAD(&pcbFree_h);                                
+   for (int i = 0; i<MAXPROC; i++){
+    freePcb(&(pcbFree_table[i].p_list)); 
+  }
     }
-    pcbFree_h.prev = &lista;   //D: qua ci vorrebbe anche &lista.next = pcbFree_h secondo me 
-}
 
 void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella coda ?? non chiede di fare nessuna condizione
-    list_add_tail(&p, &pcbFree_h);
+    list_add_tail(&p->p_list, &pcbFree_h);
 }
 
 pcb_t* allocPcb() {
-   if (list_empty(&pcbFree_h)) return NULL; // rimuovo quello inserito per prima e poi dopo quelli dopo (FIFO)
+        if (list_empty(&pcbFree_h)) return NULL; // Return NULL if the pcbFree list is empty}
+    else{
+        struct list_head *primo_elemento = pcbFree_h.next;  //puntatore primo elemento
+        list_del(primo_elemento);  // toglie il primo elemento come FIFO
+        pcb_t *pcb_rimossso = container_of(primo_elemento, pcb_t, p_list); // prendo il pcb_t di PRIMO ELEMENTO
+
+        pcb_rimossso->p_parent = NULL;  
+        INIT_LIST_HEAD(&pcb_rimossso->p_child);  
+        INIT_LIST_HEAD(&pcb_rimossso->p_sib); 
+        pcb_rimossso->p_supportStruct = NULL;  
+        pcb_rimossso->p_pid = next_pid++;  
+        pcb_rimossso->p_time = 0;  
+        
+        return (pcb_rimossso);
+    }
+   if (list_empty(&pcbFree_h)) return NULL;
    pcb_t* pcb_rimosso = &pcbFree_h.next;
-   list_del(&pcbFree_h.next);
-   INIT_LIST_HEAD(pcb_rimosso);
+    // rimuovo quello inserito per prima e poi dopo quelli dopo (FIFO)
+   INIT_LIST_HEAD(&pcb_rimosso->p_child);
+   INIT_LIST_HEAD(&pcb_rimosso->p_sib);
+   pcb_rimosso->p_parent = NULL;
+   pcb_rimosso->p_supportStruct = NULL;
+   pcb_rimosso->p_pid++;
+   pcb_rimosso->p_time = 0;
+   pcb_rimosso->p_semAdd = 0;
    return pcb_rimosso;
 }
 
