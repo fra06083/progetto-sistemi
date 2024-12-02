@@ -27,10 +27,10 @@ void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella c
 pcb_t* allocPcb() {
         if (list_empty(&pcbFree_h)) return NULL; // Return NULL if the pcbFree list is empty}
     else{
-        struct list_head *primo_elemento = pcbFree_h.next;  //puntatore primo elemento
-        list_del(primo_elemento);  // toglie il primo elemento come FIFO
-        pcb_t *pcb_rimossso = container_of(primo_elemento, pcb_t, p_list); // prendo il pcb_t di PRIMO ELEMENTO
-
+        struct list_head *primo_elemento = pcbFree_h.next;  //puntatore primo elemento, elimina il primo elemento FIFO
+        list_del(primo_elemento);  
+        pcb_t *pcb_rimossso = container_of(primo_elemento, pcb_t, p_list); 
+// CONTAINER mi dà pcb_t della lista vista, non deve uscire null sennò è sbagliato.
         pcb_rimossso->p_parent = NULL;  
         INIT_LIST_HEAD(&pcb_rimossso->p_child);  
         INIT_LIST_HEAD(&pcb_rimossso->p_sib); 
