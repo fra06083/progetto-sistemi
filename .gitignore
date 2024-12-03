@@ -1,2 +1,10 @@
-#Ignora la cartella /build
-progetto-sistemi/build/
+# Ignora la cartella build
+build/
+
+# Ignora file temporanei di sistema
+.DS_Store
+Thumbs.db
+
+# Ignora file generati da IDE
+.idea/
+.vscode/
