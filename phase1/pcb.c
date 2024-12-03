@@ -40,17 +40,6 @@ pcb_t* allocPcb() {
         
         return (pcb_rimossso);
     }
-   if (list_empty(&pcbFree_h)) return NULL;
-   pcb_t* pcb_rimosso = &pcbFree_h.next;
-    // rimuovo quello inserito per prima e poi dopo quelli dopo (FIFO)
-   INIT_LIST_HEAD(&pcb_rimosso->p_child);
-   INIT_LIST_HEAD(&pcb_rimosso->p_sib);
-   pcb_rimosso->p_parent = NULL;
-   pcb_rimosso->p_supportStruct = NULL;
-   pcb_rimosso->p_pid++;
-   pcb_rimosso->p_time = 0;
-   pcb_rimosso->p_semAdd = 0;
-   return pcb_rimosso;
 }
 
 void mkEmptyProcQ(struct list_head* head) { //head è il puntatore alla testa della lista (vuota) che verrà riempita coi PCB's 
