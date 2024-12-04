@@ -37,7 +37,6 @@ pcb_t* allocPcb() {
         pcb_rimossso->p_supportStruct = NULL;  
         pcb_rimossso->p_pid = next_pid++;  
         pcb_rimossso->p_time = 0;  
-        
         return (pcb_rimossso);
     }
 }
@@ -112,17 +111,34 @@ pcb_t* outProcQ(struct list_head* head, pcb_t* p) {
 }
 
 int emptyChild(pcb_t* p) { // non so se ha senso sinceramente da cambiare e confermare
-   struct list_head* child = &p->p_child;
-   return (list_empty(child));
+   //struct list_head* child = &p->p_child;
+   //return (list_empty(child));
+   return list_empty(&p->p_child);
 }
 
 void insertChild(pcb_t* prnt, pcb_t* p) {
+    if (emptyChild(prnt)) INIT_LIST_HEAD(&prnt->p_child); 
+    p->p_parent = prnt; // metto il parent al puntatore
+    list_add_tail(&prnt->p_sib, &prnt->p_child);
 }
 
-pcb_t* removeChild(pcb_t* p) {
+pcb_t* removeChild(pcb_t* p) {  // CHECK ERRORE TOO MANY CHILDREN 
+    if (!emptyChild(p)){
+        struct list_head *primo_nella_lista = p->p_child.next;
+        list_del(&primo_nella_lista);
+        pcb_t* processo = container_of(primo_nella_lista, pcb_t, p_sib);
+        processo->p_parent = NULL;
+        return p;
+    } 
+    else return NULL;
 }
+
 
 pcb_t* outChild(pcb_t* p) {
+    if(p->p_parent == NULL) return NULL;
+    // cancello il sibling e scollego il parent, il primo figlio può essere ancora sibling, p_child è il figlio
+    list_del(&p->p_sib);
+    p->p_parent = NULL; 
 }
 
 

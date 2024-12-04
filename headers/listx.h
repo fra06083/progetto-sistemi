@@ -177,7 +177,7 @@ static inline int list_is_last(const struct list_head *list, const struct list_h
 
     return: 1 se la lista e' vuota, 0 altrimenti
 */
-static inline int list_empty(const struct list_head *head) {
+static inline int list_empty(const struct list_head *head) {    
     return head->next == head;
 }
 
