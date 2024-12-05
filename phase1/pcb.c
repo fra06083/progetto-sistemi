@@ -16,7 +16,9 @@ passaggio finale SENTINELLA.prev = ultimo della lista
 void initPcbs() {                                                                                                                        
    INIT_LIST_HEAD(&pcbFree_h);                                
    for (int i = 0; i<MAXPROC; i++){
-    freePcb(&(pcbFree_table[i].p_list)); 
+       pcb_t *puntatore = &pcbFree_table[i]; // salvo il puntatore della lista, devo inizializzare per ogni i il list head
+       INIT_LIST_HEAD(&puntatore->p_list);
+    freePcb(puntatore); // dava problemi con la vecchia configurazione, ora da un pcb_t in input
   }
     }
 
@@ -114,26 +116,33 @@ int emptyChild(pcb_t* p) { // non so se ha senso sinceramente da cambiare e conf
 void insertChild(pcb_t* prnt, pcb_t* p) {
     if (emptyChild(prnt)) INIT_LIST_HEAD(&prnt->p_child); 
     p->p_parent = prnt; // metto il parent al puntatore
-    list_add_tail(&prnt->p_sib, &prnt->p_child);
+    list_add_tail(&p->p_sib, &prnt->p_child); 
+    /* qui ci va p->p_sib perché così li aggiunge come fratelli, se prnt non ha fratelli inizializza la lista per poi aggiungere fratelli 
+    la struttura è di processi, quindi ha senso che abbia un processo figlio che contiene una lista e i fratelli allo stesso livello
+    */
 }
 
 pcb_t* removeChild(pcb_t* p) {  // CHECK ERRORE TOO MANY CHILDREN 
     if (!emptyChild(p)){
         struct list_head *primo_nella_lista = p->p_child.next;
-        list_del(&primo_nella_lista);
-        pcb_t* processo = container_of(primo_nella_lista, pcb_t, p_sib);
+        list_del(primo_nella_lista);
+        pcb_t *processo = container_of(primo_nella_lista, pcb_t, p_sib);
         processo->p_parent = NULL;
-        return p;
+        return processo; // qua mandiamo in output il processo eliminato, prima avevamo scritto p in modo sbagliato
     } 
     else return NULL;
 }
 
+//Make the PCB pointed to by p no longer the child of its parent. If the PCB pointed to by p has
+//no parent, return NULL; otherwise, return p. Note that the element pointed to by p could be
+//in an arbitrary position (i.e. not be the first child of its parent).
 
 pcb_t* outChild(pcb_t* p) {
     if(p->p_parent == NULL) return NULL;
     // cancello il sibling e scollego il parent, il primo figlio può essere ancora sibling, p_child è il figlio
     list_del(&p->p_sib);
     p->p_parent = NULL; 
+    return p;
 }
 
 
