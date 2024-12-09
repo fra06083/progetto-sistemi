@@ -10,15 +10,12 @@ schema
 pcbfree_table[0] aggiunto a head.next...
 pcbfree_table[1] aggiunto a head.next->next e mette head.next->prev = head.next...
 ....
-passaggio finale SENTINELLA.prev = ultimo della lista
-
 */
 void initPcbs() {                                                                                                                        
    INIT_LIST_HEAD(&pcbFree_h);                                
    for (int i = 0; i<MAXPROC; i++){
        pcb_t *puntatore = &pcbFree_table[i]; // salvo il puntatore della lista, devo inizializzare per ogni i il list head
-       INIT_LIST_HEAD(&puntatore->p_list);
-    freePcb(puntatore); // dava problemi con la vecchia configurazione, ora da un pcb_t in input
+    freePcb(puntatore); // dava problemi con la vecchia configurazione, ora dà un pcb_t in input
   }
     }
 
@@ -122,7 +119,7 @@ void insertChild(pcb_t* prnt, pcb_t* p) {
     */
 }
 
-pcb_t* removeChild(pcb_t* p) {  // CHECK ERRORE TOO MANY CHILDREN 
+pcb_t* removeChild(pcb_t* p) { 
     if (!emptyChild(p)){
         struct list_head *primo_nella_lista = p->p_child.next;
         list_del(primo_nella_lista);
@@ -139,7 +136,7 @@ pcb_t* removeChild(pcb_t* p) {  // CHECK ERRORE TOO MANY CHILDREN
 
 pcb_t* outChild(pcb_t* p) {
     if(p->p_parent == NULL) return NULL;
-    // cancello il sibling e scollego il parent, il primo figlio può essere ancora sibling, p_child è il figlio
+    // cancello il sibling e scollego il parent, p_child è il figlio, p_sibling i fratelli, quindi mi occorre controllare quello.
     list_del(&p->p_sib);
     p->p_parent = NULL; 
     return p;
