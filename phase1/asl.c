@@ -44,19 +44,12 @@ int insertBlocked(int *semAdd, pcb_t *p)
         return TRUE;
     
     struct list_head *semaforo = semdFree_h.next;
-    klog_print("1");
     semd_t *semDaInserire = container_of(semaforo, semd_t, s_link);
-    klog_print("2");
     semDaInserire->s_key = semAdd;
-    INIT_LIST_HEAD(&semDaInserire->s_procq);
-   // mkEmptyProcQ(semDaInserire->s_procq);
-    klog_print("3");
+    INIT_LIST_HEAD(&semDaInserire->s_procq); // qua dice di fare un makeEmptyProcQ
     list_add_tail(&p->p_list, &semDaInserire->s_procq);
-    klog_print("4");
     list_add_tail(semdFree_h.next, &semd_h);
-    klog_print("5");
     list_del(semdFree_h.next);
-    klog_print("6");
     return FALSE;
     // list_add_tail(); aggiungere alla coda.
 }
