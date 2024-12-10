@@ -33,7 +33,7 @@ int insertBlocked(int *semAdd, pcb_t *p)
         if (entry->s_key == semAdd)
         {
              klog_print("TROVA");
-            list_add_tail(p, &entry->s_procq);
+            list_add_tail(&p->p_list, &entry->s_procq);
             return FALSE; // finito parte 1, ha inserito il processo nella lista.
         }
     }
