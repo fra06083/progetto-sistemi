@@ -1,5 +1,5 @@
 # Ignora la cartella build
-build/
+./build/**
 
 # Ignora file temporanei di sistema
 .DS_Store
