@@ -18,7 +18,6 @@
 #include <uriscv/liburiscv.h>
 #include "./headers/pcb.h"
 #include "./headers/asl.h"
-
 #define MAXSEM  MAXPROC
 
 char   okbuf[2048]; /* sequence of progress messages */

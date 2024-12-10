@@ -56,7 +56,7 @@ EQUALS = =
 CMAKE_SOURCE_DIR = /home/francesco/Documents/progetto/progetto-sistemi
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/francesco/Documents/progetto/progetto-sistemi/build
+CMAKE_BINARY_DIR = /home/francesco/Documents/progetto/progetto-sistemi
 
 # Utility rule file for MultiPandOSuRISCV.
 
@@ -67,7 +67,7 @@ include CMakeFiles/MultiPandOSuRISCV.dir/compiler_depend.make
 include CMakeFiles/MultiPandOSuRISCV.dir/progress.make
 
 CMakeFiles/MultiPandOSuRISCV: MultiPandOS
-	uriscv-elf2uriscv -k /home/francesco/Documents/progetto/progetto-sistemi/build/MultiPandOS
+	uriscv-elf2uriscv -k /home/francesco/Documents/progetto/progetto-sistemi/MultiPandOS
 
 MultiPandOSuRISCV: CMakeFiles/MultiPandOSuRISCV
 MultiPandOSuRISCV: CMakeFiles/MultiPandOSuRISCV.dir/build.make
@@ -82,6 +82,6 @@ CMakeFiles/MultiPandOSuRISCV.dir/clean:
 .PHONY : CMakeFiles/MultiPandOSuRISCV.dir/clean
 
 CMakeFiles/MultiPandOSuRISCV.dir/depend:
-	cd /home/francesco/Documents/progetto/progetto-sistemi/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/francesco/Documents/progetto/progetto-sistemi /home/francesco/Documents/progetto/progetto-sistemi /home/francesco/Documents/progetto/progetto-sistemi/build /home/francesco/Documents/progetto/progetto-sistemi/build /home/francesco/Documents/progetto/progetto-sistemi/build/CMakeFiles/MultiPandOSuRISCV.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/francesco/Documents/progetto/progetto-sistemi && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/francesco/Documents/progetto/progetto-sistemi /home/francesco/Documents/progetto/progetto-sistemi /home/francesco/Documents/progetto/progetto-sistemi /home/francesco/Documents/progetto/progetto-sistemi /home/francesco/Documents/progetto/progetto-sistemi/CMakeFiles/MultiPandOSuRISCV.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/MultiPandOSuRISCV.dir/depend
 

@@ -16,4 +16,5 @@ insertChild, removeChild and emptyChild ok
 process tree module ok      
 Initialized active semaphore list   
 insertBlocked test #1 started  
-insertBlocked(1): unexpected TRUE   
+insertBlocked test #2 started  
+insertBlocked: inserted more than MAXPROC   

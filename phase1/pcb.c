@@ -1,5 +1,4 @@
 #include "./headers/pcb.h"
-#include "../klog.c"
 static struct list_head pcbFree_h; // sentinella della lista dei processi liberi o non utilizzati, NON NE FA PARTE. 
 static pcb_t pcbFree_table[MAXPROC]; // tabella processi
 static int next_pid = 1; // prossimo id del processo
