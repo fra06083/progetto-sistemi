@@ -59,9 +59,7 @@ int insertBlocked(int *semAdd, pcb_t *p)
 
 pcb_t *removeBlocked(int *semAdd)
 {
-    int find = FALSE;
     semd_t *entry;
-    semd_t *sem_saved = NULL;
     klog_print("Entro nella funzione");
     list_for_each_entry(entry, &semd_h, s_link)
     {
