@@ -33,8 +33,9 @@ pcb_t* allocPcb() {
         INIT_LIST_HEAD(&pcb_rimossso->p_child);  
         INIT_LIST_HEAD(&pcb_rimossso->p_sib); 
         pcb_rimossso->p_supportStruct = NULL;  
-        pcb_rimossso->p_pid = next_pid++;  
-        pcb_rimossso->p_time = 0;  
+        pcb_rimossso->p_pid = next_pid;  
+        pcb_rimossso->p_time = 0;
+        pcb_rimossso->p_semAdd = NULL;
         return (pcb_rimossso);
     }
 }
@@ -61,8 +62,7 @@ Return a pointer to the first PCB from the process queue whose head is pointed t
 not remove this PCB from the process queue. Return NULL if the process queue is empty.
 */
 pcb_t* headProcQ(struct list_head* head) {
-    if(emptyProcQ(head)) return NULL;
-    else return (container_of(head->next, pcb_t, p_list));
+    return container_of(list_next(head), pcb_t, p_list);
 }
 
 /*
@@ -70,16 +70,12 @@ Remove the first (i.e. head) element from the process queue whose head pointer i
 by head. Return NULL if the process queue was initially empty; otherwise return the pointer
 to the removed element.
 */
-
 pcb_t* removeProcQ(struct list_head* head){
-    if (head == NULL || head->next == head)
-        return NULL;
-    pcb_t *removed_pcb = container_of(head->next, pcb_t, p_list);
+    if (list_empty(head)) return NULL;
+    pcb_t *pcb = headProcQ(head);
+    list_del(&pcb->p_list);
    //Rimuovi il nodo dalla lista
-    head->next->next->prev = head;
-    head->next = head->next->next;
-
-    return removed_pcb;
+    return pcb;
 }
 
 /*
@@ -87,15 +83,14 @@ Remove the PCB pointed to by p from the process queue whose head pointer is poin
 head. If the desired entry is not in the indicated queue (an error condition), return NULL;
 otherwise, return p. Note that p can point to any element of the process queue.
 */
-pcb_t* outProcQ(struct list_head* head, pcb_t* p) {
-    if (head == NULL || p == NULL || list_empty(head))
-        return NULL;
+pcb_t* outProcQ(struct list_head* head, pcb_t* p) { //(entry->s_procq, p)
+    if (p == NULL) return NULL;
     // Scorri la lista per cercare il nodo p
-    pcb_t *current_pcb;
-    list_for_each_entry(current_pcb, head, p_list) {
-        if (current_pcb == p) {
+    struct list_head *lista_iter;
+    list_for_each(lista_iter, head) {
+        if (lista_iter == &p->p_list) {
             // Nodo trovato, rimuovilo dalla lista
-            list_del(&current_pcb->p_list);
+            list_del(lista_iter);
             return p; // Restituisci il PCB rimosso
         }
     }

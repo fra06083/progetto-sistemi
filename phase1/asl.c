@@ -35,6 +35,7 @@ int insertBlocked(int *semAdd, pcb_t *p)
             {
                 // klog_print("TROVA");
                 list_add_tail(&p->p_list, &entry->s_procq);
+                p->p_semAdd = semAdd;
                 return FALSE; // finito parte 1, ha inserito il processo nella lista.
             }
         }
@@ -48,6 +49,7 @@ int insertBlocked(int *semAdd, pcb_t *p)
     // list_del(semaforo);
     semd_t *semDaInserire = container_of(semaforo, semd_t, s_link);
     semDaInserire->s_key = semAdd;
+    p->p_semAdd = semAdd;
     list_del(&semDaInserire->s_link);
     mkEmptyProcQ(&semDaInserire->s_procq); // qua dice di fare un makeEmptyProcQ
     list_add_tail(&p->p_list, &semDaInserire->s_procq);
@@ -60,13 +62,10 @@ int insertBlocked(int *semAdd, pcb_t *p)
 pcb_t *removeBlocked(int *semAdd)
 {
     semd_t *entry;
-    klog_print("Entro nella funzione");
     list_for_each_entry(entry, &semd_h, s_link)
     {
-        klog_print("ENTRO");
         if (entry->s_key == semAdd)
         {
-            klog_print("Entro nell'else");
             // salvo il primo visto che removePROCQ mi cancella il primo processo
             pcb_t *first = removeProcQ(&entry->s_procq);
             if (emptyProcQ(&entry->s_procq))
@@ -92,19 +91,35 @@ simile outProcQ?
 */
 pcb_t *outBlocked(pcb_t *p)
 {
- // cerco nei semafori attivi
- semd_t *entry;
+  // cerco nei semafori attivi
+ semd_t *entry = NULL;
  list_for_each_entry(entry, &semd_h, s_link)
     {
-        klog_print("ENTRO");
+        klog_print_dec(entry->s_key);
         if (entry->s_key == p->p_semAdd)
         {
-            return outProcQ(&entry->s_procq, p); // nella process queue, procedo su p.
+            // TROVO
+            klog_print("ENTRO");
+           return outProcQ(&entry->s_procq, p); // nella process queue, procedo su p.
         }
     }
  return NULL; // non trovato quindi è error condition
 }
-
+/*
+Return a pointer to the PCB that is at the head of the process queue associated with the
+semaphore semAdd. Return NULL if semAdd is not found on the ASL or if the process queue
+associated with semAdd is empty.
+*/
 pcb_t *headBlocked(int *semAdd)
 {
+    semd_t *entry;
+ list_for_each_entry(entry, &semd_h, s_link)
+    {
+        if (entry->s_key == semAdd)
+        {
+            // trovato
+          return headProcQ(&entry->s_procq);
+        }
+    }
+    return NULL; // semAdd is not found.
 }
