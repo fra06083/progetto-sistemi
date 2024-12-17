@@ -83,9 +83,26 @@ pcb_t *removeBlocked(int *semAdd)
 pcb_t *outBlockedPid(int pid)
 {
 }
+/*
 
+Remove the PCB pointed to by p from the process queue associated with p’s semaphore (p->p_semAdd)
+on the ASL. If PCB pointed to by p does not appear in the process queue associated with p’s
+semaphore, which is an error condition, return NULL; otherwise, return p.
+simile outProcQ?
+*/
 pcb_t *outBlocked(pcb_t *p)
 {
+ // cerco nei semafori attivi
+ semd_t *entry;
+ list_for_each_entry(entry, &semd_h, s_link)
+    {
+        klog_print("ENTRO");
+        if (entry->s_key == p->p_semAdd)
+        {
+            return outProcQ(&entry->s_procq, p); // nella process queue, procedo su p.
+        }
+    }
+ return NULL; // non trovato quindi è error condition
 }
 
 pcb_t *headBlocked(int *semAdd)
