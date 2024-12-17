@@ -17,4 +17,6 @@ process tree module ok
 Initialized active semaphore list   
 insertBlocked test #1 started  
 insertBlocked test #2 started  
-test 2 fatto beneFin qui va bene, l'ha ritornato nella free listinsertBlocked: inserted more than MAXPROC   
+test 2 fatto beneFin qui va bene, l'ha ritornato nella free listremoveBlocked test started   
+insertBlocked and removeBlocked ok   
+headBlocked: nonNULL for a nonexistent queue   
