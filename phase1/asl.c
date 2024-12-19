@@ -78,10 +78,11 @@ pcb_t *removeBlocked(int *semAdd)
     }
     return NULL;
 }
-
+/* DA NON IMPLEMENTARE, inutile ed ho chiesto ai tutor
 pcb_t *outBlockedPid(int pid)
 {
 }
+*/
 /*
 
 Remove the PCB pointed to by p from the process queue associated with p’s semaphore (p->p_semAdd)
