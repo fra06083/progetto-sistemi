@@ -5,11 +5,6 @@ static struct list_head semdFree_h; // semafori non utilizzati
 static struct list_head semd_h;     // semafori attivi ASL LIST
 #include "../klog.c"
 #include "./headers/pcb.h"
-/*
-
-liste = semdFree_h.next
-liste
-*/
 void initASL()
 {
 
@@ -21,43 +16,61 @@ void initASL()
         list_add_tail(&puntatore->s_link, &semdFree_h); // perché non sono ancora utilizzati
     }
 }
+/*
+ insert the
+PCB pointed to by p at the tail of the process queue
+associated with the semaphore whose key is semAdd and set
+the semaphore address of p to semaphore with semAdd. If the
+semaphore is currently not active, allocate a new descriptor
+from the semdFree list, insert it in the ASL (at the
+appropriate position), initialize all of the fields, and proceed as
+above. If a new semaphore descriptor needs to be allocated
+and the semdFree list is empty, return TRUE. In all other
+cases return FALSE.
+*/
 int insertBlocked(int *semAdd, pcb_t *p)
 {
-    // SE VUOTO INIZIALIZZIAMO, SE NON VUOTO AGGIUNGIAMO IN CODA.
+    // S
     semd_t *entry;
-    if (!list_empty(&semd_h))
-    { // klog_print("ENTRA NEL CICLO!");
+    if (!list_empty(&semd_h)){
         list_for_each_entry(entry, &semd_h, s_link)
         { // controllo che esista un semaforo che abbia come indirizzo semAdd, sennò aggiungo.
-            /* controlliamo nella lista attiva, se non c'è è sicuro che sia nei non attivi. ? fare contrario*/
-            // klog_print("RIESCO AD ITERARE");
+            /* controlliamo nella lista attiva, se non c'è è sicuro che sia nei non attivi. */
             if (entry->s_key == semAdd)
             {
-                // klog_print("TROVA");
+                //Semaforo trovato, lo aggiungo nella lista 
                 list_add_tail(&p->p_list, &entry->s_procq);
                 p->p_semAdd = semAdd;
-                return FALSE; // finito parte 1, ha inserito il processo nella lista.
+                return FALSE; 
             }
         }
     }
-    // NON TROVATO
-    // klog_print("NON TROVATO, inizio a fare lista!");
-    if (list_empty(&semdFree_h))
+    //Semaforo non trovato, se la lista dei semafori inutilizzati è vuota allora return True
+    if(list_empty(&semdFree_h))
         return TRUE;
-
+    // Altrimenti, estraggo il primo semaforo della lista dei semafori non utilizzati e metto i campi corretti.
     struct list_head *semaforo = list_next(&semdFree_h);
-    // list_del(semaforo);
     semd_t *semDaInserire = container_of(semaforo, semd_t, s_link);
     semDaInserire->s_key = semAdd;
     p->p_semAdd = semAdd;
+    //Rimosso dalla lista dei semafori inutilizzati il semDaInserire e inizializzo il campo s_procq con mkEmptyProcQ
     list_del(&semDaInserire->s_link);
-    mkEmptyProcQ(&semDaInserire->s_procq); // qua dice di fare un makeEmptyProcQ
+    mkEmptyProcQ(&semDaInserire->s_procq); 
+    //Aggiungo la process queue di p nella queue dei processi bloccati su quel semaforo 
     list_add_tail(&p->p_list, &semDaInserire->s_procq);
+    //Aggiungo il semaforo nella lista dei semafori attivi 
     list_add_tail(&semDaInserire->s_link, &semd_h);
     return FALSE;
-    // list_add_tail(); aggiungere alla coda.
 }
-/**/
+/*
+ search the ASL for
+a descriptor of this semaphore. If none is found, return NULL;
+otherwise, remove the first PCB from the process queue of the
+found semaphore descriptor and return a pointer to it. If the
+process queue for this semaphore becomes empty, remove the
+semaphore descriptor from the ASL and return it to the
+semdFree list.
+*/
 
 pcb_t *removeBlocked(int *semAdd)
 {
@@ -71,24 +84,21 @@ pcb_t *removeBlocked(int *semAdd)
             if (emptyProcQ(&entry->s_procq))
             {
                 list_del(&entry->s_link);
-                list_add_tail(&entry->s_link, &semdFree_h); // no devo spostare il semaforo
+                list_add_tail(&entry->s_link, &semdFree_h);
+                /*
+                lo rinserisco nella semdFree_h visto che la coda è vuota non è più utilizzata
+                */
             }
             return first;
         }
     }
     return NULL;
 }
-/* DA NON IMPLEMENTARE, inutile ed ho chiesto ai tutor
-pcb_t *outBlockedPid(int pid)
-{
-}
-*/
 /*
-
 Remove the PCB pointed to by p from the process queue associated with p’s semaphore (p->p_semAdd)
 on the ASL. If PCB pointed to by p does not appear in the process queue associated with p’s
 semaphore, which is an error condition, return NULL; otherwise, return p.
-simile outProcQ?
+
 */
 pcb_t *outBlocked(pcb_t *p)
 {
@@ -96,12 +106,9 @@ pcb_t *outBlocked(pcb_t *p)
  semd_t *entry = NULL;
  list_for_each_entry(entry, &semd_h, s_link)
     {
-        klog_print_dec(entry->s_key);
         if (entry->s_key == p->p_semAdd)
         {
-            // TROVO
-            klog_print("ENTRO");
-           return outProcQ(&entry->s_procq, p); // nella process queue, procedo su p.
+           return outProcQ(&entry->s_procq, p); // rimuovo la process queue da p per poi restituirlo.
         }
     }
  return NULL; // non trovato quindi è error condition

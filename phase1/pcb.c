@@ -5,11 +5,18 @@ static int next_pid = 1; // prossimo id del processo
 
 /*
 
-schema
+schema per fare l'inizializzazione
 pcbfree_table[0] aggiunto a head.next...
 pcbfree_table[1] aggiunto a head.next->next e mette head.next->prev = head.next...
 ....
 */
+
+/* 
+ initialize the pcbFree list to contain all
+the elements of the static array of MAXPROC PCBs. This
+method will be called only once during data structure
+initialization.
+ */
 void initPcbs() {                                                                                                                        
    INIT_LIST_HEAD(&pcbFree_h);                                
    for (int i = 0; i<MAXPROC; i++){
@@ -18,33 +25,52 @@ void initPcbs() {
   }
     }
 
+/*
+insert the element pointed to by p onto the pcbFree list.
+*/
 void freePcb(pcb_t* p) { // inserire l'elemento p nella lista pcbfree () nella coda ?? non chiede di fare nessuna condizione
     list_add_tail(&p->p_list, &pcbFree_h);
 }
-
+/*
+return NULL if the pcbFree list is
+empty. Otherwise, remove an element from the pcbFree list,
+provide initial values for ALL of the PCBs fields and then
+return a pointer to the removed element. PCBs get reused, so
+it is important that no previous value persist in a PCB when it
+gets reallocated.
+*/
 pcb_t* allocPcb() {
         if (list_empty(&pcbFree_h)) return NULL; // Return NULL if the pcbFree list is empty}
     else{
         struct list_head *primo_elemento = pcbFree_h.next;  //puntatore primo elemento, elimina il primo elemento FIFO
         list_del(primo_elemento);  
-        pcb_t *pcb_rimossso = container_of(primo_elemento, pcb_t, p_list); 
+        pcb_t *pcb_rimosso = container_of(primo_elemento, pcb_t, p_list); 
 // CONTAINER mi dà pcb_t della lista vista, non deve uscire null sennò è sbagliato.
-        pcb_rimossso->p_parent = NULL;  
-        INIT_LIST_HEAD(&pcb_rimossso->p_child);  
-        INIT_LIST_HEAD(&pcb_rimossso->p_sib); 
-        pcb_rimossso->p_supportStruct = NULL;  
-        pcb_rimossso->p_pid = next_pid;  
-        pcb_rimossso->p_time = 0;
-        pcb_rimossso->p_semAdd = NULL;
-        return (pcb_rimossso);
+        pcb_rimosso->p_parent = NULL;  
+        INIT_LIST_HEAD(&pcb_rimosso->p_child);  
+        INIT_LIST_HEAD(&pcb_rimosso->p_sib); 
+        pcb_rimosso->p_supportStruct = NULL;  
+        pcb_rimosso->p_pid = next_pid;
+        pcb_rimosso->p_time = 0;
+        pcb_rimosso->p_semAdd = NULL;
+// rinizializzo tutto quanto e restituisco
+        return (pcb_rimosso);
     }
 }
-
-void mkEmptyProcQ(struct list_head* head) { //head è il puntatore alla testa della lista (vuota) che verrà riempita coi PCB's 
+/*
+this
+method is used to initialize a variable to be head pointer to a
+process queue.
+*/
+void mkEmptyProcQ(struct list_head* head) {
     //Inizializzo una struct list_head (esistente) vuota 
     INIT_LIST_HEAD(head);     
 }
-
+/*
+return TRUE
+if the queue whose head is pointed to by head is empty.
+Return FALSE otherwise.
+*/
 int emptyProcQ(struct list_head* head) {
     if(list_empty(head)) return TRUE;
     else return FALSE; 
@@ -72,9 +98,9 @@ to the removed element.
 */
 pcb_t* removeProcQ(struct list_head* head){
     if (list_empty(head)) return NULL;
+    //Rimuovo il primo processo della process queue e faccio il return di quel pcb
     pcb_t *pcb = headProcQ(head);
     list_del(&pcb->p_list);
-   //Rimuovi il nodo dalla lista
     return pcb;
 }
 
@@ -85,41 +111,41 @@ otherwise, return p. Note that p can point to any element of the process queue.
 */
 pcb_t* outProcQ(struct list_head* head, pcb_t* p) { //(entry->s_procq, p)
     if (p == NULL) return NULL;
-    // Scorri la lista per cercare il nodo p
+    // Scorro la lista per cercare il processo in input 
     struct list_head *lista_iter;
     list_for_each(lista_iter, head) {
         if (lista_iter == &p->p_list) {
-            // Nodo trovato, rimuovilo dalla lista
+            // processo trovato, rimuovilo dalla process queue
             list_del(lista_iter);
-            return p; // Restituisci il PCB rimosso
+            return p; // Restituisco il PCB rimosso
         }
     }
-    // Nodo non trovato nella coda
+    // pcb non trovato nella process queue
     return NULL;
 }
 
-int emptyChild(pcb_t* p) { // non so se ha senso sinceramente da cambiare e confermare
-   //struct list_head* child = &p->p_child;
-   //return (list_empty(child));
+int emptyChild(pcb_t* p) {
+ // se la lista dei child del pcb p in input è vuota ritorna 1 altrimenti 0
    return list_empty(&p->p_child);
 }
 
 void insertChild(pcb_t* prnt, pcb_t* p) {
+    //Se il processo padre non ha processi figli nel campo p_child, 
     if (emptyChild(prnt)) INIT_LIST_HEAD(&prnt->p_child); 
     p->p_parent = prnt; // metto il parent al puntatore
-    list_add_tail(&p->p_sib, &prnt->p_child); 
-    /* qui ci va p->p_sib perché così li aggiunge come fratelli, se prnt non ha fratelli inizializza la lista per poi aggiungere fratelli 
+    list_add_tail(&p->p_sib, &prnt->p_child);
+    /* qui ci va p->p_sib perché così li aggiunge come fratelli, 
+    se prnt non ha fratelli inizializza la lista per poi aggiungere fratelli 
     la struttura è di processi, quindi ha senso che abbia un processo figlio che contiene una lista e i fratelli allo stesso livello
     */
 }
-
 pcb_t* removeChild(pcb_t* p) { 
     if (!emptyChild(p)){
         struct list_head *primo_nella_lista = p->p_child.next;
         list_del(primo_nella_lista);
         pcb_t *processo = container_of(primo_nella_lista, pcb_t, p_sib);
         processo->p_parent = NULL;
-        return processo; // qua mandiamo in output il processo eliminato, prima avevamo scritto p in modo sbagliato
+        return processo; 
     } 
     else return NULL;
 }
@@ -127,7 +153,6 @@ pcb_t* removeChild(pcb_t* p) {
 //Make the PCB pointed to by p no longer the child of its parent. If the PCB pointed to by p has
 //no parent, return NULL; otherwise, return p. Note that the element pointed to by p could be
 //in an arbitrary position (i.e. not be the first child of its parent).
-
 pcb_t* outChild(pcb_t* p) {
     if(p->p_parent == NULL) return NULL;
     // cancello il sibling e scollego il parent, p_child è il figlio, p_sibling i fratelli, quindi mi occorre controllare quello.
