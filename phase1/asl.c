@@ -108,7 +108,9 @@ pcb_t *outBlocked(pcb_t *p)
     {
         if (entry->s_key == p->p_semAdd)
         {
-           return outProcQ(&entry->s_procq, p); // rimuovo la process queue da p per poi restituirlo.
+           pcb_t* processi = outProcQ(&entry->s_procq, p); // rimuovo la process queue da p per poi restituirlo.
+           if (emptyProcQ(&processi->p_list)) list_add_tail(&entry->s_link, &semdFree_h);
+           return processi;
         }
     }
  return NULL; // non trovato quindi è error condition
