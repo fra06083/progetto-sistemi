@@ -5,11 +5,10 @@
 #include "./headers/listx.h"
 #include "./headers/const.h"
 // File fase 2
-#include "header/exceptions.h"
+#include "headers/exceptions.h"
+#include "headers/interrupts.h"
+#include "headers/scheduler.h"
 #include "./p2test.c"
-#include "./exceptions.c"
-#include "./interrupts.c"
-#include "./scheduler.c"
 
 // File di uriscv
 #include <uriscv/cpu.h>
@@ -101,11 +100,17 @@ int main (){
         stato->gpr[i] = 0;
     }
     // settiamo lo stato e inseriamo il processo nella ready queue; è il primo processo possibile, lo creiamo all'inizio
-    // PAGINA 5 DEL PDF
-    first_process->p_s.status = &stato;
+    // PAGINA 3 DEL PDF punto 3
     insertProcQ(&ready_queue, first_process);
     process_count++;
-    
+    // QUI MANCA ROBA CONTINUA DALLA PAGINA 3 DAL PUNTO 7
+
+
+
+
+    // PARTE FINALE dell'initial: ora possiamo iniziare a fare il ciclo di scheduling
+    scheduler();
+    // qui è finito, non deve ritornare nel main sennò è errore
 
     // MANCA UNA PARTE DEL CODICE non è finito
     return 0;
