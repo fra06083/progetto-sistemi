@@ -1,6 +1,16 @@
-#ifndef ASL_H_INCLUDED
-#define ASL_H_INCLUDED
+#ifndef EXC_H_INCLUDED
+#define EXC_H_INCLUDED
 
 #include "../../headers/listx.h"
 #include "../../headers/types.h"
-void uTLB_RefillHandler();
+
+// Funzioni esterne
+extern unsigned int getPRID(void);
+extern unsigned int setENTRYHI(unsigned int entry);
+extern unsigned int setENTRYLO(unsigned int entry);
+extern unsigned int LDST(void* state);
+extern void uTLB_RefillHandler();
+// Funzioni dichiarate
+void exceptionHandler();
+
+#endif

@@ -1,19 +1,3 @@
-// implemento i file di fase 1
-#include "./headers/pcb.h"
-#include "./headers/asl.h"
-#include "./headers/types.h"
-#include "./headers/listx.h"
-#include "./headers/const.h"
-// File fase 2
-#include "headers/exceptions.h"
-#include "headers/interrupts.h"
-#include "headers/scheduler.h"
-#include "./p2test.c"
-
-// File di uriscv
-#include <uriscv/cpu.h>
-#include <uriscv/arch.h>
-#include <uriscv/liburiscv.h> // libreria di uriscv, viene richiesta, sennò non abbiamo le funzioni che ci servono LDST
 /*
 SUDDIVISIONE DEI FILE
 13.1 Module Decomposition
@@ -28,9 +12,28 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 
 
 */
+// File di uriscv
+#include <uriscv/cpu.h>
+#include <uriscv/arch.h>
+#include <uriscv/liburiscv.h> // libreria di uriscv, viene richiesta, sennò non abbiamo le funzioni che ci servono LDST
+
+
+// implemento i file di fase 1
+#include "../klog.c"
+#include "../phase1/headers/pcb.h"
+#include "../phase1/headers/asl.h"
+#include "../headers/const.h"
+
+
+// File fase 2
+#include "headers/exceptions.h"
+#include "headers/interrupts.h"
+#include "headers/scheduler.h"
+#include "./p2test.c"
+
 #define BASE_STACK0 0x2000200 // Inizio dello stack
 int process_count = 0; // Contatore dei processi
-extern struct list_head ready_queue;
+struct list_head ready_queue;
 struct pcb_t *current_process[NCPU];
 struct semd_t sem[NRSEMAPHORES];
 volatile unsigned int global_lock; // Lock globale
@@ -44,9 +47,8 @@ semd_PTR pseudoClock; // Semd per il clock
 // extern fa capire solamente che la funzione è definita in un altro file
 extern void test();
 extern void scheduler();
+extern void uTLB_RefillHandler();
 extern void exceptionHandler();
-extern void interruptHandler();
-
 // ASSEGNIAMO FUORI DAL FOR IL VALORE DELLO STACK POINTER PER LA CPU 0
 passupvector_t *pvector = (passupvector_t *) PASSUPVECTOR;
 int main (){

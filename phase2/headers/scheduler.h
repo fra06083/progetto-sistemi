@@ -1,6 +1,7 @@
-#ifndef ASL_H_INCLUDED
-#define ASL_H_INCLUDED
+#ifndef SCH_H_INCLUDED
+#define SCH_H_INCLUDED
 
 
 // METODI
+void scheduler();
 #endif

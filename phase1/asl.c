@@ -3,7 +3,6 @@
 static semd_t semd_table[MAXPROC];
 static struct list_head semdFree_h; // semafori non utilizzati
 static struct list_head semd_h;     // semafori attivi ASL LIST
-#include "../klog.c"
 #include "./headers/pcb.h"
 void initASL()
 {
