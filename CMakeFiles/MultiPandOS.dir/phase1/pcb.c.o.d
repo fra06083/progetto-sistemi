@@ -6,5 +6,4 @@ CMakeFiles/MultiPandOS.dir/phase1/pcb.c.o: \
  /usr/include/uriscv/types.h \
  /home/francesco/Documents/progetto/progetto-sistemi/phase1/./headers/../../headers/./const.h \
  /usr/include/uriscv/const.h /usr/include/uriscv/csr.h \
- /home/francesco/Documents/progetto/progetto-sistemi/phase1/./headers/../../headers/./listx.h \
- /home/francesco/Documents/progetto/progetto-sistemi/phase1/../klog.c
+ /home/francesco/Documents/progetto/progetto-sistemi/phase1/./headers/../../headers/./listx.h

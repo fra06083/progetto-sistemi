@@ -17,32 +17,21 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include <uriscv/arch.h>
 #include <uriscv/liburiscv.h> // libreria di uriscv, viene richiesta, sennò non abbiamo le funzioni che ci servono LDST
 
-
 // implemento i file di fase 1
 #include "../klog.c"
 #include "../phase1/headers/pcb.h"
 #include "../phase1/headers/asl.h"
 #include "../headers/const.h"
-
-
-// File fase 2
-#include "headers/exceptions.h"
-#include "headers/interrupts.h"
-#include "headers/scheduler.h"
+// implemento il file test
 #include "./p2test.c"
-
 #define BASE_STACK0 0x2000200 // Inizio dello stack
-int process_count = 0; // Contatore dei processi
+int process_count = 0;        // Contatore dei processi
 struct list_head ready_queue;
-struct pcb_t *current_process[NCPU];
+struct pcb_t *current_process[NCPU]; // controllare  // Vettore di puntatori, 8 processi che vanno nelle varie CPU
 struct semd_t sem[NRSEMAPHORES];
 volatile unsigned int global_lock; // Lock globale
-struct list_head pcbReady; // Lista dei processi pronti
-int processCount = 0; // Contatore dei processi
-pcb_t* currentProcess[8]; // Vettore di puntatori, 8 processi che vanno nelle varie CPU
-semd_PTR terminal; // Semd per il terminale ne richiede 2 per terminale
-semd_PTR pseudoClock; // Semd per il clock
-
+struct list_head pcbReady;         // Lista dei processi pronti
+int processCount = 0;              // Contatore dei processi
 // extern perché sennò darebbe errore il compilatore
 // extern fa capire solamente che la funzione è definita in un altro file
 extern void test();
@@ -50,36 +39,55 @@ extern void scheduler();
 extern void uTLB_RefillHandler();
 extern void exceptionHandler();
 // ASSEGNIAMO FUORI DAL FOR IL VALORE DELLO STACK POINTER PER LA CPU 0
-passupvector_t *pvector = (passupvector_t *) PASSUPVECTOR;
-int main (){
-//   int stack_ptr_cpu[8]; // stack pointer per ogni cpu
-//  stack_ptr_cpu[0] = KERNELSTACK; // stack pointer non serve secondo me, il tutor ha scritto che il passupvector
-// deve esserci per ogni cpu, quindi non ha senso fare un vettore di stack pointer int
-    pvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
+passupvector_t *pvector = (passupvector_t *)PASSUPVECTOR;
+
+// PUNTO 7 rivedere
+void configureIRT(int line, int dev){
+    volatile memaddr *irt_entry = (volatile memaddr *)IRT_ENTRY(line, dev);
+    memaddr entry = (1 << IRT_ENTRY_POLICY_BIT) | (line << IRT_ENTRY_DEST_BIT);
+    *irt_entry = entry;
+    //
+}
+
+void setTPR(int priority){
+    volatile memaddr *tpr = (volatile memaddr *)TPR;
+    *tpr = priority;
+}
+
+int main(){
+
+    //   int stack_ptr_cpu[8]; // stack pointer per ogni cpu
+    //  stack_ptr_cpu[0] = KERNELSTACK; // stack pointer non serve secondo me, il tutor ha scritto che il passupvector
+    // deve esserci per ogni cpu, quindi non ha senso fare un vettore di stack pointer int
+    pvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
     pvector->tlb_refill_stackPtr = KERNELSTACK;
-    pvector->exception_handler = (memaddr) exceptionHandler; // handler delle eccezioni, dobbiamo farla noi
-    for (int cpu_id = 1; cpu_id < NCPU;cpu_id++){
-        //0x20020000 + (cpu_id * PAGESIZE)
-        pvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
+    pvector->exception_handler = (memaddr)exceptionHandler; // handler delle eccezioni, dobbiamo farla noi
+    passupvector_t *pvector = (passupvector_t *)(PASSUPVECTOR + 0x10);
+    for (int cpu_id = 1; cpu_id < NCPU; cpu_id++)
+    {
+        // 0x20020000 + (cpu_id * PAGESIZE)
+        pvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
         pvector->tlb_refill_stackPtr = BASE_STACK0 + (cpu_id * PAGESIZE);
-        pvector->exception_handler = (memaddr) exceptionHandler; // handler delle eccezioni, dobbiamo farla noi
+        pvector->exception_handler = (memaddr)exceptionHandler; // handler delle eccezioni, dobbiamo farla noi
         // 0x10 è la dimensione di passupvector, quindi ci spostiamo di 16 byte
-        passupvector_t *pvector = (passupvector_t *)(PASSUPVECTOR + cpu_id * 0x10);
+        passupvector_t *pvector = (passupvector_t *)(PASSUPVECTOR + (cpu_id * 0x10));
     }
     // inizializziamo le strutture dati
     initPcbs();
     initASL();
 
-    // Inizializziamo ora le variabili globali
+    // PUNTO 4 Inizializziamo ora le variabili globali
     mkEmptyProcQ(&pcbReady);
     for (int i = 0; i < NRSEMAPHORES; i++){
+        
         sem[i] = (struct semd_t){0};
     }
-    for (int i = 0; i < NCPU; i++){ 
+    for (int i = 0; i < NCPU; i++){
+
         current_process[i] = NULL;
     }
     global_lock = 0;
-    // Inizializziamo ora l'interval timer
+    // PUNTO 5 Inizializziamo ora l'interval timer
     LDIT(PSECOND); // psecond è un valore costante è 100 ms.
 
     // Inizializziamo ora il primo processo
@@ -94,22 +102,43 @@ int main (){
     stato->reg_sp = RAMTOP(stato->reg_sp);
 
     // Imposta il Program Counter all'indirizzo di test di pcb2test
-    stato->pc_epc = (unsigned int)test;
-
-    // A questo punto, puoi inizializzare altri campi del PCB, come i registri generali, se necessario.
+    stato->pc_epc = (memaddr)test;
+    // A questo punto, inizializziamo i registri generali, se necessario.
     // Esempio (potresti inizializzare i GPR con 0):
-    for (int i = 0; i < STATE_GPR_LEN; i++) {
+    for (int i = 0; i < STATE_GPR_LEN; i++){
         stato->gpr[i] = 0;
     }
     // settiamo lo stato e inseriamo il processo nella ready queue; è il primo processo possibile, lo creiamo all'inizio
     // PAGINA 3 DEL PDF punto 3
     insertProcQ(&ready_queue, first_process);
     process_count++;
+    current_process[0] = first_process;
     // QUI MANCA ROBA CONTINUA DALLA PAGINA 3 DAL PUNTO 7
+    // Punto 7 interrupt routing table sistemiamo
+    // Abbiamo l'indirizzo di IRT
+    /*
+    Use *((memaddr)TPR) = 0 and *((memaddr)TPR) = 1
+    to set the Task Priority Register.
+    Tabella che mappa
+    classe dispositivi per ogni linea di interrupt
 
+    */
 
+    // PUNTO 8
+    for (int i = 1; i < NCPU; i++){
+        current_process[i] = allocPcb();
+        current_process[i]->p_s.status = MSTATUS_MPP_M;
+        current_process[i]->p_s.pc_epc = (memaddr)scheduler;
+        current_process[i]->p_s.reg_sp = BASE_STACK0 + (i * PAGESIZE);
+        for (int i = 0; i < STATE_GPR_LEN; i++)
+        {
+            current_process[i]->p_s.gpr[i] = 0;
+        }
+        current_process[i]->p_s.entry_hi = 0;
+        current_process[i]->p_s.cause = 0;
+    }
 
-
+    // NRSEMAPHORES % 2
     // PARTE FINALE dell'initial: ora possiamo iniziare a fare il ciclo di scheduling
     scheduler();
     // qui è finito, non deve ritornare nel main sennò è errore
