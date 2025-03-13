@@ -21,7 +21,7 @@ Current Process field of the current CPU.
         RELEASE_LOCK(&global_lock);
         HALT();
         } else {
-        // 2. Load 5 milliseconds on the PLT [Section 7.2].
+        // 2. Load 5 milliseconds on the PLT [Section 7.2]. come bro....
         /* . Perform a Load Processor State (LDST) on the processor state stored in PCB of the Current
 Process (p_s) of the current CPU.
 */
