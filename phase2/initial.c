@@ -24,14 +24,13 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "../headers/const.h"
 // implemento il file test
 #include "./p2test.c"
+#include "headers/exceptions.h" // da vedere se serve
 #define BASE_STACK0 0x2000200 // Inizio dello stack
 int process_count = 0;        // Contatore dei processi
-struct list_head ready_queue;
-struct pcb_t *current_process[NCPU]; // controllare  // Vettore di puntatori, 8 processi che vanno nelle varie CPU
+struct pcb_t *current_process[NCPU];  // Vettore di puntatori, 8 processi che vanno nelle varie CPU
 struct semd_t sem[NRSEMAPHORES];
 volatile unsigned int global_lock; // Lock globale
 struct list_head pcbReady;         // Lista dei processi pronti
-int processCount = 0;              // Contatore dei processi
 // extern perché sennò darebbe errore il compilatore
 // extern fa capire solamente che la funzione è definita in un altro file
 extern void test();
@@ -76,6 +75,7 @@ int main(){
     initPcbs();
     initASL();
 
+    
     // PUNTO 4 Inizializziamo ora le variabili globali
     mkEmptyProcQ(&pcbReady);
     for (int i = 0; i < NRSEMAPHORES; i++){
@@ -86,7 +86,7 @@ int main(){
 
         current_process[i] = NULL;
     }
-    global_lock = 0;
+    global_lock = 1; // Inizializziamo a 1 perché sennò non andrebbe, è un lock. (semaforo)
     // PUNTO 5 Inizializziamo ora l'interval timer
     LDIT(PSECOND); // psecond è un valore costante è 100 ms.
 
