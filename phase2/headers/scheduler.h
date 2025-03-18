@@ -3,6 +3,12 @@
 
 #include "../../headers/listx.h"
 #include "../../headers/types.h"
+extern int process_count;
+extern struct pcb_t *current_process[NCPU];
+extern pcb_t* removeProcQ(struct list_head* head);
+extern struct list_head pcbReady;
+extern int getPRID();
+extern volatile int global_lock;
 // METODI
 void scheduler();
 #endif

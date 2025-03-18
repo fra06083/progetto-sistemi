@@ -8,15 +8,7 @@ if the status register with saved_exception_state->status & MSTATUS_MPP_MASK see
 Rovelli’s thesis for more details.
 
 */
-extern int getCause();
-extern volatile int global_lock;
-extern pcb_t *pcbReady;
-extern int process_count;
-extern struct list_head ready_queue;
-extern struct pcb_t *current_process[NCPU];  // Vettore di puntatori, 8 processi che vanno nelle varie CPU
-extern struct semd_t sem[NRSEMAPHORES];
-extern volatile unsigned int global_lock; // Lock globale
-extern struct list_head pcbReady;         // Lista dei processi pronti
+
 void exceptionHandler()
 {
     
@@ -40,6 +32,24 @@ void exceptionHandler()
         programTrapHandler();
     }
 }
+void createProcess(state_t *c_state){
+  ACQUIRE_LOCK(&global_lock);
+  pcb_t *new_process = allocPcb();
+  if (new_process == NULL){
+    c_state->reg_a0 = -1; // restituisco -1 nel registro a0 se non posso creare un processo
+    RELEASE_LOCK(&global_lock);
+  }
+  new_process->p_s = *(state_t *) c_state->reg_a1;
+  new_process->p_supportStruct = (support_t *) c_state->reg_a3;
+  new_process->p_pid = generatePID();
+  insertProcQ(&current_process[getPRID()]->p_list, &new_process);
+  insertChild(&current_process[getPRID()], &new_process->p_child);
+  process_count++;
+  new_process->p_time = 0;
+  new_process->p_semAdd = NULL;
+  c_state->reg_a0 = new_process->p_pid;
+  RELEASE_LOCK(&global_lock);
+}
 void syscallHandler(int excepCode){
 // QUI VERIFICHIAMO SE E' in kernel mode
 /*
@@ -53,8 +63,45 @@ int iskernel = stato->status & MSTATUS_MPP_M;
 if (stato->reg_a0 < 0 && iskernel){
     // se il valore di a0 è negativo e siamo in kernel mode
     // allora dobbiamo fare un'azione descritta nella pagina 7 del pdf
+   switch (stato->reg_a0)
+   {
+   case CREATEPROCESS:
+    createProcess(stato);
+    break;
+   case TERMPROCESS:
+    break;
+   case PASSEREN:
+    break;
+   case VERHOGEN:
+    break;
+   case DOIO:
+    break;
+   case GETTIME:
+    break;
+   case CLOCKWAIT:
+    break;
+  case GETSUPPORTPTR:
+    break;
+  case GETPROCESSID:
+    break;
+  default: // Se non trova nessuna, program TRAP
+   stato->cause = PRIVINSTR;
+   programTrapHandler();
+   }
+} else {
+  stato->cause = PRIVINSTR; // perché non è possibile usare questi casi in usermode.
+  programTrapHandler();
 }
 }
+
+
+/*    
+    }
+
+    */
+
+
+
 
 /*
 // SPDX-FileCopyrightText: 2004 Mauro Morsiani
