@@ -40,7 +40,7 @@ void createProcess(state_t *c_state){
   c_state->reg_a0 = -1; // restituisco -1 nel registro a0 se non posso creare un processo
   RELEASE_LOCK(&global_lock);
  }
-  new_process->p_s = *(state_t *) c_state->reg_a1;
+ // sbagliato new_process->p_s = c_state->reg_a1;
   new_process->p_supportStruct = (support_t *) c_state->reg_a3;
   insertProcQ(&current_process[getPRID()]->p_list, &new_process);
   insertChild(&current_process[getPRID()], &new_process->p_child);
