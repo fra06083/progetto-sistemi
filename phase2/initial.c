@@ -12,10 +12,33 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 
 
 */
+
+// FILE FASE 1
+#include "../phase1/headers/pcb.h"
+#include "../phase1/headers/asl.h"
+#include "../headers/const.h"
+#include "../klog.c"
+
+// FILE URISCV
+#include "uriscv/arch.h"
+#include "uriscv/cpu.h"
+#include <uriscv/liburiscv.h> // libreria di uriscv, viene richiesta, sennò non abbiamo le funzioni che ci servono LDST
+
+// FILE SECONDA FASE
+#include "./exceptions.c"
+#include "./interrupts.c"
+#include "./scheduler.c"
+
+
+#include "./p2test.c"
+
+
+
+/*
 // File di uriscv
 #include <uriscv/cpu.h>
 #include <uriscv/arch.h>
-#include <uriscv/liburiscv.h> // libreria di uriscv, viene richiesta, sennò non abbiamo le funzioni che ci servono LDST
+
 
 // implemento i file di fase 1
 #include "../klog.c"
@@ -23,7 +46,12 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "../phase1/headers/asl.h"
 #include "../headers/const.h"
 // implemento il file test
-#include "./p2test.c"
+// #include "./p2test.c"
+
+#include "./headers/exceptions.h"
+#include "./headers/interrupts.h"
+
+*/
 #include "headers/exceptions.h" // da vedere se serve
 #define BASE_STACK0 0x2000200 // Inizio dello stack
 int process_count = 0;        // Contatore dei processi
@@ -33,10 +61,11 @@ volatile unsigned int global_lock; // Lock globale
 struct list_head pcbReady;         // Lista dei processi pronti
 // extern perché sennò darebbe errore il compilatore
 // extern fa capire solamente che la funzione è definita in un altro file
+
 extern void test();
 extern void scheduler();
-extern void uTLB_RefillHandler();
 extern void exceptionHandler();
+extern void interruptHandler();
 // ASSEGNIAMO FUORI DAL FOR IL VALORE DELLO STACK POINTER PER LA CPU 0
 passupvector_t *pvector = (passupvector_t *)PASSUPVECTOR;
 
@@ -110,7 +139,7 @@ int main(){
     }
     // settiamo lo stato e inseriamo il processo nella ready queue; è il primo processo possibile, lo creiamo all'inizio
     // PAGINA 3 DEL PDF punto 3
-    insertProcQ(&ready_queue, first_process);
+    insertProcQ(&pcbReady, first_process);
     process_count++;
     current_process[0] = first_process;
     // QUI MANCA ROBA CONTINUA DALLA PAGINA 3 DAL PUNTO 7

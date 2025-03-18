@@ -15,15 +15,17 @@ extern unsigned int setENTRYLO(unsigned int entry);
 extern unsigned int LDST(void* state);
 extern void uTLB_RefillHandler();
 extern int getCause();
-extern volatile int global_lock;
-extern pcb_t *pcbReady;
+extern volatile unsigned int global_lock;
 extern int process_count;
 extern struct list_head ready_queue;
 extern struct pcb_t *current_process[NCPU];  // Vettore di puntatori, 8 processi che vanno nelle varie CPU
 extern struct semd_t sem[NRSEMAPHORES];
 extern volatile unsigned int global_lock; // Lock globale
 extern struct list_head pcbReady;         // Lista dei processi pronti
+extern void uTLB_RefillHandler();
+
 // Funzioni dichiarate
-void exceptionHandler();
+void exceptionHandler(); 
 void syscallHandler();
+void uTLB_ExceptionHandler();
 #endif

@@ -35,13 +35,13 @@ void exceptionHandler()
 void createProcess(state_t *c_state){
   ACQUIRE_LOCK(&global_lock);
   pcb_t *new_process = allocPcb();
-  if (new_process == NULL){
-    c_state->reg_a0 = -1; // restituisco -1 nel registro a0 se non posso creare un processo
-    RELEASE_LOCK(&global_lock);
-  }
+ if (new_process == NULL) 
+ {
+  c_state->reg_a0 = -1; // restituisco -1 nel registro a0 se non posso creare un processo
+  RELEASE_LOCK(&global_lock);
+ }
   new_process->p_s = *(state_t *) c_state->reg_a1;
   new_process->p_supportStruct = (support_t *) c_state->reg_a3;
-  new_process->p_pid = generatePID();
   insertProcQ(&current_process[getPRID()]->p_list, &new_process);
   insertChild(&current_process[getPRID()], &new_process->p_child);
   process_count++;
@@ -94,7 +94,13 @@ if (stato->reg_a0 < 0 && iskernel){
 }
 }
 
+void uTLB_ExceptionHandler(){
 
+
+}
+void programTrapHandler(){
+
+}
 /*    
     }
 
