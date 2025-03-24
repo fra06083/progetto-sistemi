@@ -67,7 +67,7 @@ extern void scheduler();
 extern void exceptionHandler();
 extern void interruptHandler();
 // ASSEGNIAMO FUORI DAL FOR IL VALORE DELLO STACK POINTER PER LA CPU 0
-passupvector_t *pvector = (passupvector_t *)PASSUPVECTOR;
+passupvector_t *pvector = (passupvector_t *) PASSUPVECTOR;
 
 // PUNTO 7 rivedere
 void configureIRT(int line, int dev){
@@ -122,7 +122,6 @@ int main(){
     // Inizializziamo ora il primo processo
     pcb_t *first_process = allocPcb();
     state_t *stato = &first_process->p_s;
-
     // Abilito le interruzioni come dice il file delle specifiche
     stato->mie = MIE_ALL;
 
@@ -152,6 +151,19 @@ int main(){
     classe dispositivi per ogni linea di interrupt
 
     */
+   // WS è la word size (che è 4 byte)
+   // 6 REGISTRI PER CPU
+   int cpucounter = -1;
+   for (int i = 0; i < IRT_NUM_ENTRY; i++) {
+       if (i % (IRT_NUM_ENTRY/NCPU) == 0){
+        cpucounter++; // continuo ad andare avanti nelle cpu
+       } 
+       *((memaddr *)(IRT_START + i*WS)) |= IRT_RP_BIT_ON;
+       // accende il 28esimo bit di una linea dell'interrupt table. RP a 1
+       *((memaddr *)(IRT_START + i*WS)) |= (1 << cpucounter);
+
+   }
+   *((memaddr *)TPR) = 0;
 
     // PUNTO 8
     for (int i = 1; i < NCPU; i++){
@@ -169,6 +181,7 @@ int main(){
 
     // NRSEMAPHORES % 2
     // PARTE FINALE dell'initial: ora possiamo iniziare a fare il ciclo di scheduling
+    klog_print("PARTE LO SCHEDULER");
     scheduler();
     // qui è finito, non deve ritornare nel main sennò è errore
 
