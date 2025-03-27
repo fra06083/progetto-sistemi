@@ -29,30 +29,8 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "./interrupts.c"
 #include "./scheduler.c"
 
-
-#include "./p2test.c"
-
-
-
-/*
-// File di uriscv
-#include <uriscv/cpu.h>
-#include <uriscv/arch.h>
-
-
-// implemento i file di fase 1
-#include "../klog.c"
-#include "../phase1/headers/pcb.h"
-#include "../phase1/headers/asl.h"
-#include "../headers/const.h"
-// implemento il file test
-// #include "./p2test.c"
-
-#include "./headers/exceptions.h"
-#include "./headers/interrupts.h"
-
-*/
 #include "headers/exceptions.h" // da vedere se serve
+
 #define BASE_STACK0 0x2000200 // Inizio dello stack
 int process_count = 0;        // Contatore dei processi
 struct pcb_t *current_process[NCPU];  // Vettore di puntatori, 8 processi che vanno nelle varie CPU
@@ -66,6 +44,7 @@ extern void test();
 extern void scheduler();
 extern void exceptionHandler();
 extern void interruptHandler();
+extern void uTLB_RefillHandler();
 // ASSEGNIAMO FUORI DAL FOR IL VALORE DELLO STACK POINTER PER LA CPU 0
 passupvector_t *pvector = (passupvector_t *) PASSUPVECTOR;
 
@@ -141,7 +120,6 @@ int main(){
     insertProcQ(&pcbReady, first_process);
     process_count++;
     current_process[0] = first_process;
-    // QUI MANCA ROBA CONTINUA DALLA PAGINA 3 DAL PUNTO 7
     // Punto 7 interrupt routing table sistemiamo
     // Abbiamo l'indirizzo di IRT
     /*
@@ -161,10 +139,12 @@ int main(){
        *((memaddr *)(IRT_START + i*WS)) |= IRT_RP_BIT_ON;
        // accende il 28esimo bit di una linea dell'interrupt table. RP a 1
        *((memaddr *)(IRT_START + i*WS)) |= (1 << cpucounter);
+       // così rendo la linea di interrupt associata a quella cpu.
 
    }
    *((memaddr *)TPR) = 0;
-
+   // il tpr viene impostato a 0 perché è ready
+   
     // PUNTO 8
     for (int i = 1; i < NCPU; i++){
         current_process[i] = allocPcb();
