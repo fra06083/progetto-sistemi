@@ -49,8 +49,9 @@ extern void uTLB_RefillHandler();
 passupvector_t *pvector = (passupvector_t *) PASSUPVECTOR;
 
 // PUNTO 7 rivedere
-void configureIRT(int line, int dev){
-    volatile memaddr *irt_entry = (volatile memaddr *)IRT_ENTRY(line, dev);
+// da riguardare
+void configureIRT(int line, int cpu){
+    volatile memaddr *irt_entry = (volatile memaddr *)IRT_ENTRY(line, cpu);
     memaddr entry = (1 << IRT_ENTRY_POLICY_BIT) | (line << IRT_ENTRY_DEST_BIT);
     *irt_entry = entry;
     //
@@ -129,21 +130,19 @@ int main(){
     classe dispositivi per ogni linea di interrupt
 
     */
-   // WS è la word size (che è 4 byte)
-   // 6 REGISTRI PER CPU
-   int cpucounter = -1;
-   for (int i = 0; i < IRT_NUM_ENTRY; i++) {
-       if (i % (IRT_NUM_ENTRY/NCPU) == 0){
-        cpucounter++; // continuo ad andare avanti nelle cpu
-       } 
-       *((memaddr *)(IRT_START + i*WS)) |= IRT_RP_BIT_ON;
-       // accende il 28esimo bit di una linea dell'interrupt table. RP a 1
-       *((memaddr *)(IRT_START + i*WS)) |= (1 << cpucounter);
-       // così rendo la linea di interrupt associata a quella cpu.
+    // WS è la word size (che è 4 byte)
+    // 6 REGISTRI PER CPU
+    int cpucounter =  -1;
+    for (int i = 0; i < IRT_NUM_ENTRY; i++) {
+        if (i % (IRT_NUM_ENTRY / NCPU) == 0) {
+            cpucounter++;  // Cambia CPU dopo ogni gruppo di entry
+        }
 
-   }
-   *((memaddr *)TPR) = 0;
-   // il tpr viene impostato a 0 perché è ready
+        // Configura la linea di interrupt i per la CPU cpucounter
+        configureIRT(i, cpucounter);
+    }
+    setTPR(0);
+    // il tpr viene impostato a 0 perché è ready
    
     // PUNTO 8
     for (int i = 1; i < NCPU; i++){

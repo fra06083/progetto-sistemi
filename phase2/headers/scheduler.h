@@ -9,7 +9,6 @@ extern pcb_t* removeProcQ(struct list_head* head);
 extern struct list_head pcbReady;
 extern unsigned int getPRID();
 extern volatile unsigned int global_lock;
-extern 
 // METODI
 void scheduler();
 #endif
