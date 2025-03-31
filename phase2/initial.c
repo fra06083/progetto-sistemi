@@ -53,7 +53,7 @@ passupvector_t *pvector = (passupvector_t *) PASSUPVECTOR;
 // da riguardare
 void configureIRT(int line, int cpu){
     volatile memaddr *irt_entry = (volatile memaddr *) IRT_ENTRY(line, cpu);
-    memaddr entry = (1 << IRT_ENTRY_POLICY_BIT) | (line << IRT_ENTRY_DEST_BIT);
+    memaddr entry = (1 << IRT_ENTRY_POLICY_BIT) | (line << cpu); // attiva quella determinata CPU per quella riga IRT (?)
     *irt_entry = entry;
     //
 }
