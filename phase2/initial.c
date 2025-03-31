@@ -132,17 +132,14 @@ int main(){
     */
     // WS è la word size (che è 4 byte)
     // 6 REGISTRI PER CPU
-    int cpucounter =  -1;
+    int cpucounter =  0;
 
 
     for (int i = 0; i < IRT_NUM_ENTRY; i++) {
-        klog_print("s \n");
-        if (i % (IRT_NUM_ENTRY / NCPU) == 0) {
-            cpucounter++;  // Cambia CPU dopo ogni gruppo di entry
-        }
-
+        // non serve contatore, (i / 6) % 8 < se li divide per le 8 cpu
+        cpucounter = (i / (IRT_NUM_ENTRY / NCPU)) % NCPU;
         // Configura la linea di interrupt i per la CPU cpucounter
-      configureIRT(i, cpucounter);
+      configureIRT(i, cpucounter); // controllare che fa
     }
     klog_print("PRIMA DEL TPR \n");
     setTPR(0);
