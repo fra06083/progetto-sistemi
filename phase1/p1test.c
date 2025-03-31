@@ -15,6 +15,7 @@
 #include "../headers/const.h"
 #include "../headers/types.h"
 
+
 #include <uriscv/liburiscv.h>
 #include "./headers/pcb.h"
 #include "./headers/asl.h"
@@ -121,7 +122,7 @@ void adderrbuf(char *strp) {
 
 int main(void) {
     int i;
-
+    klog_print("PARTE LO SCHEDULER");
     initPcbs();
     addokbuf("Initialized process control blocks   \n");
 

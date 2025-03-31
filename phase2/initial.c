@@ -19,6 +19,7 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 #include "../headers/const.h"
 #include "../klog.c"
 
+
 // FILE URISCV
 #include "uriscv/arch.h"
 #include "uriscv/cpu.h"
@@ -51,19 +52,19 @@ passupvector_t *pvector = (passupvector_t *) PASSUPVECTOR;
 // PUNTO 7 rivedere
 // da riguardare
 void configureIRT(int line, int cpu){
-    volatile memaddr *irt_entry = (volatile memaddr *)IRT_ENTRY(line, cpu);
+    volatile memaddr *irt_entry = (volatile memaddr *) IRT_ENTRY(line, cpu);
     memaddr entry = (1 << IRT_ENTRY_POLICY_BIT) | (line << IRT_ENTRY_DEST_BIT);
     *irt_entry = entry;
     //
 }
 
 void setTPR(int priority){
-    volatile memaddr *tpr = (volatile memaddr *)TPR;
+    volatile memaddr *tpr = (volatile memaddr *) TPR;
     *tpr = priority;
 }
 
 int main(){
-
+    klog_print("Starting Nucleus.\n");
     //   int stack_ptr_cpu[8]; // stack pointer per ogni cpu
     //  stack_ptr_cpu[0] = KERNELSTACK; // stack pointer non serve secondo me, il tutor ha scritto che il passupvector
     // deve esserci per ogni cpu, quindi non ha senso fare un vettore di stack pointer int
@@ -71,6 +72,7 @@ int main(){
     pvector->tlb_refill_stackPtr = KERNELSTACK;
     pvector->exception_handler = (memaddr)exceptionHandler; // handler delle eccezioni, dobbiamo farla noi
     passupvector_t *pvector = (passupvector_t *)(PASSUPVECTOR + 0x10);
+    klog_print("Inizializzazione pvector...\n");
     for (int cpu_id = 1; cpu_id < NCPU; cpu_id++)
     {
         // 0x20020000 + (cpu_id * PAGESIZE)
@@ -83,7 +85,7 @@ int main(){
     // inizializziamo le strutture dati
     initPcbs();
     initASL();
-
+    klog_print(" init delle strutture dati..\n");
     
     // PUNTO 4 Inizializziamo ora le variabili globali
     mkEmptyProcQ(&pcbReady);
@@ -98,7 +100,6 @@ int main(){
     global_lock = 1; // Inizializziamo a 1 perché sennò non andrebbe, è un lock. (semaforo)
     // PUNTO 5 Inizializziamo ora l'interval timer
     LDIT(PSECOND); // psecond è un valore costante è 100 ms.
-
     // Inizializziamo ora il primo processo
     pcb_t *first_process = allocPcb();
     state_t *stato = &first_process->p_s;
@@ -108,7 +109,6 @@ int main(){
     // Imposta la modalità kernel e abilita le interruzioni
     stato->status = MSTATUS_MIE_MASK | MSTATUS_MPP_M;
     stato->reg_sp = RAMTOP(stato->reg_sp);
-
     // Imposta il Program Counter all'indirizzo di test di pcb2test
     stato->pc_epc = (memaddr)test;
     // A questo punto, inizializziamo i registri generali, se necessario.
@@ -133,17 +133,21 @@ int main(){
     // WS è la word size (che è 4 byte)
     // 6 REGISTRI PER CPU
     int cpucounter =  -1;
+
+
     for (int i = 0; i < IRT_NUM_ENTRY; i++) {
+        klog_print("s \n");
         if (i % (IRT_NUM_ENTRY / NCPU) == 0) {
             cpucounter++;  // Cambia CPU dopo ogni gruppo di entry
         }
 
         // Configura la linea di interrupt i per la CPU cpucounter
-        configureIRT(i, cpucounter);
+      configureIRT(i, cpucounter);
     }
+    klog_print("PRIMA DEL TPR \n");
     setTPR(0);
     // il tpr viene impostato a 0 perché è ready
-   
+    klog_print(" TPR\n");
     // PUNTO 8
     for (int i = 1; i < NCPU; i++){
         current_process[i] = allocPcb();
@@ -157,7 +161,6 @@ int main(){
         current_process[i]->p_s.entry_hi = 0;
         current_process[i]->p_s.cause = 0;
     }
-
     // NRSEMAPHORES % 2
     // PARTE FINALE dell'initial: ora possiamo iniziare a fare il ciclo di scheduling
     klog_print("PARTE LO SCHEDULER");

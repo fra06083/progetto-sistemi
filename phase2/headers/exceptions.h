@@ -13,6 +13,7 @@ extern unsigned int getPRID(void);
 extern unsigned int setENTRYHI(unsigned int entry);
 extern unsigned int setENTRYLO(unsigned int entry);
 extern unsigned int LDST(void* state);
+extern unsigned int setTIMER(unsigned int time);
 extern void uTLB_RefillHandler();
 extern int getCause();
 extern volatile unsigned int global_lock;
@@ -23,6 +24,8 @@ extern struct semd_t sem[NRSEMAPHORES];
 extern volatile unsigned int global_lock; // Lock globale
 extern struct list_head pcbReady;         // Lista dei processi pronti
 extern void uTLB_RefillHandler();
+
+extern void scheduler();
 
 // Funzioni dichiarate
 void exceptionHandler(); 

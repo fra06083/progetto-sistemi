@@ -30,12 +30,14 @@ Current Process field of the current CPU.
         rimuoviamo il pcb dalla ready queue e lo mettiamo nel current process; (ARRAY di puntatori a pcb)
         poi facciamo il dispatch */
         ACQUIRE_LOCK(&global_lock);
-        int prid = getPRID();
+        int processid = getPRID();
         struct pcb_t *pcb = removeProcQ(&pcbReady);
-        current_process[prid] = pcb;
+        current_process[processid] = pcb;
         process_count--;
         LDIT(TIMESLICE);
-        LDST(&current_process[prid]->p_s);
+        LDST(&current_process[processid]->p_s);
+        // Il tutor ha scritto che devo caricare 50000ms con setTimer
+        setTIMER(TIMESLICE);
         RELEASE_LOCK(&global_lock);
     }
 }
