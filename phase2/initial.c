@@ -49,7 +49,9 @@ void initializeSystem() {
     initPcbs();
     initASL();
     mkEmptyProcQ(&pcbReady);
-    
+    for (int i = 0; i < NCPU; i++) {
+        current_process[i] = NULL;
+    }
     for (int i = 0; i < NRSEMAPHORES; i++) {
         sem[i] = (struct semd_t){0};
     }
@@ -58,20 +60,33 @@ void initializeSystem() {
 
 // FUNZIONE CHE CREA IL PRIMO PROCESSO
 void createFirstProcess() {
+    pcb_t *first_pcb = allocPcb();
+
+    first_pcb->p_s = (state_t){
+        .pc_epc = (memaddr)test,
+        .mie = MIE_ALL,
+        .status = MSTATUS_MIE_MASK | MSTATUS_MPP_M,
+    }; 
+    RAMTOP(first_pcb->p_s.reg_sp);
+    // Process tree fields, p_time, p_semAdd and p_supportStruct are already set to NULL/initialized by allocPcb()
+
+    insertProcQ(&pcbReady, first_pcb);
+    process_count++;
+    /*
     pcb_t *first_process = allocPcb();
     state_t *stato = &first_process->p_s;
     stato->mie = MIE_ALL;
     stato->status = MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-    stato->reg_sp = RAMTOP(stato->reg_sp);
+  //  stato->reg_sp = RAMTOP(stato->reg_sp);
+    RAMTOP(stato->reg_sp);
     stato->pc_epc = (memaddr)test;
-    
     for (int i = 0; i < STATE_GPR_LEN; i++) {
         stato->gpr[i] = 0;
     }
     
     insertProcQ(&pcbReady, first_process);
     process_count++;
-    current_process[0] = first_process;
+    */
 }
 
 void configureCPUs() {

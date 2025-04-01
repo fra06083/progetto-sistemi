@@ -39,7 +39,7 @@ Declare the Level 3 global variables. This should include:
 int process_count = 0;                  // Contatore dei processi
 struct pcb_t *current_process[NCPU];    // Vettore di puntatori, 8 processi che vanno nelle varie CPU
 struct semd_t sem[NRSEMAPHORES];
-volatile unsigned int global_lock=1;      // Lock globale
+volatile unsigned int global_lock = 0;      // Lock globale
 struct list_head pcbReady;              // Lista dei processi pronti
 
 
