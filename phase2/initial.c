@@ -55,38 +55,23 @@ void initializeSystem() {
     for (int i = 0; i < NRSEMAPHORES; i++) {
         sem[i] = (struct semd_t){0};
     }
+    LDIT(PSECOND);
     configurePassupVector();
 }
 
 // FUNZIONE CHE CREA IL PRIMO PROCESSO
 void createFirstProcess() {
-    pcb_t *first_pcb = allocPcb();
-
-    first_pcb->p_s = (state_t){
-        .pc_epc = (memaddr)test,
-        .mie = MIE_ALL,
-        .status = MSTATUS_MIE_MASK | MSTATUS_MPP_M,
-    }; 
-    RAMTOP(first_pcb->p_s.reg_sp);
-    // Process tree fields, p_time, p_semAdd and p_supportStruct are already set to NULL/initialized by allocPcb()
-
-    insertProcQ(&pcbReady, first_pcb);
-    process_count++;
-    /*
     pcb_t *first_process = allocPcb();
-    state_t *stato = &first_process->p_s;
-    stato->mie = MIE_ALL;
-    stato->status = MSTATUS_MIE_MASK | MSTATUS_MPP_M;
+    (first_process->p_s).mie = MIE_ALL;
+    (first_process->p_s).status = MSTATUS_MIE_MASK | MSTATUS_MPP_M;
   //  stato->reg_sp = RAMTOP(stato->reg_sp);
-    RAMTOP(stato->reg_sp);
-    stato->pc_epc = (memaddr)test;
+    RAMTOP((first_process->p_s).reg_sp);
+    (first_process->p_s).pc_epc = (memaddr)test;
     for (int i = 0; i < STATE_GPR_LEN; i++) {
-        stato->gpr[i] = 0;
+        (first_process->p_s).gpr[i] = 0;
     }
-    
     insertProcQ(&pcbReady, first_process);
     process_count++;
-    */
 }
 
 void configureCPUs() {
@@ -100,16 +85,19 @@ void configureCPUs() {
     
     for (int i = 1; i < NCPU; i++) {
         current_process[i] = allocPcb();
-        current_process[i]->p_s.status = MSTATUS_MPP_M;
-        current_process[i]->p_s.pc_epc = (memaddr)scheduler;
-        current_process[i]->p_s.reg_sp = BASE_STACK0 + (i * PAGESIZE);
+        state_t *stato = &(current_process[i]->p_s);
+        stato->status = MSTATUS_MPP_M;
+        stato->pc_epc = (memaddr)scheduler;
+        stato->reg_sp = BASE_STACK0 + (i * PAGESIZE);
         
         for (int j = 0; j < STATE_GPR_LEN; j++) {
-            current_process[i]->p_s.gpr[j] = 0;
+            stato->gpr[j] = 0;
         }
         
         current_process[i]->p_s.entry_hi = 0;
         current_process[i]->p_s.cause = 0;
+        current_process[i]->p_s.mie = 0;
+       // INITCPU(i, &stato);
     }
 }
 

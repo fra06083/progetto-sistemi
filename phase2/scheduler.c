@@ -39,10 +39,11 @@ if (list_empty(&pcbReady)) {
     
     // Carichiamo il contesto del processo
     klog_print("Caricamento del contesto del processo...\n");
-    LDST(&(current_process[processid]->p_s));
-    klog_print("Contesto caricato\n");
     // Rilasciamo il lock dopo aver completato il dispatch
     RELEASE_LOCK(&global_lock);
-    klog_print("Lock rilasciato\n");
+    klog_print("LOCK RILASCIATO\n");
+    setTIMER(TIMESLICE);
+    LDST(&(pcb->p_s));
+    klog_print("Contesto caricato\n");
 }
 }
