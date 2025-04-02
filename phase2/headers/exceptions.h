@@ -7,7 +7,7 @@ extern int process_count;
 extern struct list_head ready_queue;
 extern struct semd_t sem[NRSEMAPHORES];
 extern struct pcb_t *current_process[NCPU];
-
+extern int lock_cpu0;
 // Funzioni dichiarate
 void exceptionHandler(); 
 void syscallHandler();

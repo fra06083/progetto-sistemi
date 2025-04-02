@@ -6,7 +6,7 @@ extern struct pcb_t *current_process[NCPU];
 extern struct list_head pcbReady;
 extern unsigned int getPRID();
 extern volatile unsigned int global_lock;
-extern int lock_0;
+extern int lock_cpu0;
 // METODI
 void scheduler();
 #endif

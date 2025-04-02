@@ -114,7 +114,6 @@ void print(char *msg) {
     devregtr *base    = (devregtr *)(TERM0ADDR);
     devregtr *command = base + 3;
     devregtr  status;
-
     SYSCALL(PASSEREN, (int)&sem_term_mut, 0, 0); /* P(sem_term_mut) */
     while (*s != EOS) {
         devregtr value = PRINTCHR | (((devregtr)*s) << 8);
@@ -146,6 +145,7 @@ void uTLB_RefillHandler() {
 /*                 p1 -- the root process                            */
 /*                                                                   */
 void test() {
+    klog_print("| SONO ENTRATO NEL TEST \n");
     SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0); /* V(sem_testsem)   */
 
     print("p1 v(sem_testsem)\n");

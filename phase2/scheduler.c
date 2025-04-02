@@ -1,15 +1,13 @@
 #include "./headers/scheduler.h"
-extern int lock_0;
 void scheduler(){
     /* Remove the PCB from the head of the Ready Queue and store the pointer to the PCB in the
 Current Process field of the current CPU.
 */
-if (getPRID() != 0 || !lock_0){
-ACQUIRE_LOCK(&global_lock);  // Acquisiamo il lock
+if (getPRID() != 0 || !lock_cpu0){
+ACQUIRE_LOCK(&global_lock);  // Blocchiamo le altre cpu
 }
 // Controllo se la ready queue è vuota
 if (emptyProcQ(&pcbReady)) {
-    klog_print("Ready queue is empty.\n");
     if (process_count == 0) {
         // Ready queue vuota e nessun processo in esecuzione, quindi HALT
         RELEASE_LOCK(&global_lock);  // Rilascio del lock prima di HALT
@@ -20,7 +18,6 @@ if (emptyProcQ(&pcbReady)) {
         unsigned int status = getSTATUS();
         status |= MSTATUS_MIE_MASK;
         setSTATUS(status);
-        LDIT(TIMESLICE);
         *((memaddr *)TPR) = 1;  // Settiamo il TPR a 1 prima di fare WAIT
         RELEASE_LOCK(&global_lock);
         WAIT();
@@ -36,10 +33,8 @@ if (emptyProcQ(&pcbReady)) {
     }
     klog_print("rimosso\n");
     current_process[pid] = pcb;
-    /*
-    if (lock_0 && pid == 0)
-    lock_0 = 0;
-    */
+    if (lock_cpu0 && pid == 0)
+    lock_cpu0 = 0;
     // Settiamo il timeslice per il processo
     LDIT(TIMESLICE);
     setTIMER(TIMESLICE);  // Impostiamo il timer per il timeslice
@@ -48,7 +43,6 @@ if (emptyProcQ(&pcbReady)) {
     // Rilasciamo il lock dopo aver completato il dispatch
     RELEASE_LOCK(&global_lock);
     setTIMER(TIMESLICE);
-    LDST(&(pcb->p_s)); // perché non lo carica??? dovrebbe caricare il test e partire ma fa NSYS
-    klog_print("Contesto caricato\n");
+    LDST(&(pcb->p_s));
 }
 }

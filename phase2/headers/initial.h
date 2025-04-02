@@ -34,7 +34,7 @@ struct pcb_t *current_process[NCPU];    // Vettore di puntatori, 8 processi che 
 struct semd_t sem[NRSEMAPHORES];
 volatile unsigned int global_lock = 0;      // Lock globale
 struct list_head pcbReady;              // Lista dei processi pronti
-
+int lock_cpu0;
 
 // extern perché sennò darebbe errore il compilatore
 // extern fa capire solamente che la funzione è definita in un altro file

@@ -1,5 +1,4 @@
 #include "./headers/exceptions.h"
-#include "/usr/include/uriscv/types.h"
 /*
 
 Important: To determine if the Current Process was executing in kernel-mode or user-mode,
@@ -21,7 +20,8 @@ void programTrapHandler(){
 void exceptionHandler()
 {
   klog_print("Exception handler acceso\n");
-    int getExcepCode = getCAUSE() & CAUSE_EXCCODE_MASK;
+    state_t *stato = GET_EXCEPTION_STATE_PTR(getPRID());
+    int getExcepCode = stato->cause & CAUSE_EXCCODE_MASK;
 
     // Dobbiamo determinare se viene eseguito in Kernel-mode o User-mode
     // qui mandiamo l'eccezione al gestore delle interruzioni
