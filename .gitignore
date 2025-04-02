@@ -5,6 +5,9 @@ build/
 .DS_Store
 Thumbs.db
 
+#Ignora il file CMakeCache.txt
+CMakeCache.txt 
+
 # Ignora file generati da IDE
 .idea/
 .vscode/
