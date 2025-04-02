@@ -10,7 +10,6 @@
 #include "uriscv/cpu.h"
 
 #include "../p2test.c"
-//#include "./p2testSyscall.c"
 
 #include "../exceptions.c"
 #include "../interrupts.c"
