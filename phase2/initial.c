@@ -15,7 +15,7 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 
 #include "./headers/initial.h"
 //DEFINIZIONE DELLE VARIABILI GLOBALI
-
+int lock_0;
 // FUNZIONI DI CONFIGURAZIONE
 void configureIRT(int line, int cpu){
     volatile memaddr *indirizzo_IRT = (volatile memaddr *)(IRT_START + (line * WS));
@@ -38,7 +38,7 @@ void configurePassupVector() {
     for (int cpu_id = 1; cpu_id < NCPU; cpu_id++) {
         pvector = (passupvector_t *)(PASSUPVECTOR + (cpu_id * 0x10));
         pvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
-        pvector->tlb_refill_stackPtr = BASE_STACK0 + (cpu_id * PAGESIZE);
+        pvector->tlb_refill_stackPtr = 0x20020000 + (cpu_id * PAGESIZE);
         pvector->exception_handler = (memaddr)exceptionHandler;
     }
 }
@@ -67,38 +67,46 @@ void createFirstProcess() {
   //  stato->reg_sp = RAMTOP(stato->reg_sp);
     RAMTOP((first_process->p_s).reg_sp);
     (first_process->p_s).pc_epc = (memaddr)test;
-    for (int i = 0; i < STATE_GPR_LEN; i++) {
-        (first_process->p_s).gpr[i] = 0;
-    }
     insertProcQ(&pcbReady, first_process);
     process_count++;
 }
 
 void configureCPUs() {
-    int cpucounter = 0;
     for (int i = 0; i < IRT_NUM_ENTRY; i++) {
-        cpucounter = (i / (IRT_NUM_ENTRY / NCPU)) % NCPU;
+       int cpucounter = (i / (IRT_NUM_ENTRY / NCPU)) % NCPU;
         configureIRT(i, cpucounter);
     }
-    
     setTPR(0);
-    
-    for (int i = 1; i < NCPU; i++) {
-        current_process[i] = allocPcb();
-        state_t *stato = &(current_process[i]->p_s);
-        stato->status = MSTATUS_MPP_M;
-        stato->pc_epc = (memaddr)scheduler;
-        stato->reg_sp = BASE_STACK0 + (i * PAGESIZE);
-        
+    state_t stato; 
+        stato.status = MSTATUS_MPP_M;
+        stato.pc_epc = (memaddr)scheduler;
         for (int j = 0; j < STATE_GPR_LEN; j++) {
-            stato->gpr[j] = 0;
+            stato.gpr[j] = 0;
         }
-        
-        current_process[i]->p_s.entry_hi = 0;
-        current_process[i]->p_s.cause = 0;
-        current_process[i]->p_s.mie = 0;
-       // INITCPU(i, &stato);
+        stato.entry_hi = 0;
+        stato.cause = 0;
+        stato.mie = 0;
+    ACQUIRE_LOCK(&global_lock); // global lock acquisition to prevent other the CPUs to execute the test code
+    lock_0 = 1; // lock acquired by CPU0
+    for (int i = 1; i < NCPU; i++) {
+        stato.reg_sp = (0x20020000 + i * PAGESIZE);
+        INITCPU(i, &stato);
     }
+/*
+    for (int i = 1; i < NCPU; i++) {
+        state_t stato;
+        stato.status = MSTATUS_MPP_M;
+        stato.pc_epc = (memaddr)scheduler;
+        stato.reg_sp = BASE_STACK0 + (i * PAGESIZE);
+        stato.entry_hi = 0;
+        stato.cause = 0;
+        stato.mie = 0;
+
+        ACQUIRE_LOCK(&global_lock); // acquisizione del lock globale
+        lock_0 = 1;
+        */
+       // INITCPU(i, &stato);
+    klog_print("CPUs setting | ");
 }
 
 int main(){

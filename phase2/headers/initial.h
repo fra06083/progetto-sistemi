@@ -1,26 +1,20 @@
 #ifndef INITIAL_H
 #define INITIAL_H
 
-#include "../../headers/types.h"
-#include "../../headers/listx.h"
-#include "../../headers/const.h"
-
-// FILE FASE 1
 #include "../../phase1/headers/pcb.h"
 #include "../../phase1/headers/asl.h"
 #include "../../headers/const.h"
 #include "../../klog.c"
 
-// FILE FASE 2
+#include "uriscv/arch.h"
+#include "uriscv/cpu.h"
+
+#include "../p2test.c"
+//#include "./p2testSyscall.c"
+
 #include "../exceptions.c"
 #include "../interrupts.c"
 #include "../scheduler.c"
-
-// FILE URISCV
-#include "uriscv/arch.h"
-#include "uriscv/cpu.h"
-#include <uriscv/liburiscv.h> // libreria di uriscv, viene richiesta, sennò non abbiamo le funzioni che ci servono LDST
-
 
 //INIZIALIZZAZIONE DEL NUCLEO
 /*
@@ -35,7 +29,7 @@ Declare the Level 3 global variables. This should include:
     • Global Lock: A integer that can have only two possible value 0 and 1, used used for
     synchronization between different instances of the nucleus running on different CPUs.
 */
-#define BASE_STACK0 0x2000200           // Inizio dello stack
+#define BASE_STACK0 (memaddr) 0x2000200           // Inizio dello stack
 int process_count = 0;                  // Contatore dei processi
 struct pcb_t *current_process[NCPU];    // Vettore di puntatori, 8 processi che vanno nelle varie CPU
 struct semd_t sem[NRSEMAPHORES];
@@ -45,18 +39,15 @@ struct list_head pcbReady;              // Lista dei processi pronti
 
 // extern perché sennò darebbe errore il compilatore
 // extern fa capire solamente che la funzione è definita in un altro file
-extern int processCount;            // Numero di processi attivi
+extern int process_count;            // Numero di processi attivi
 extern struct list_head pcbReady;   // Ready queue
 extern pcb_t* currentProcess[NCPU]; // Array dei processi in esecuzione
-extern int globalLock;              // Global lock
 extern int deviceSemaphores[NRSEMAPHORES]; // I semafori per i dispositivi, ad 
-                                                      // esempio un array con dimensione 
-                                                      // opportunamente calcolata
+
 extern void test();
 extern void scheduler();
 extern void exceptionHandler();
 extern void interruptHandler();
-extern void uTLB_RefillHandler();
 
 // NOSTRE FUNZIONI
 void initializeSystem();

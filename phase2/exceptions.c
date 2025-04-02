@@ -20,8 +20,9 @@ void programTrapHandler(){
 }
 void exceptionHandler()
 {
-    
+  klog_print("Exception handler acceso\n");
     int getExcepCode = getCAUSE() & CAUSE_EXCCODE_MASK;
+
     // Dobbiamo determinare se viene eseguito in Kernel-mode o User-mode
     // qui mandiamo l'eccezione al gestore delle interruzioni
     if (CAUSE_IS_INT(getExcepCode))
@@ -59,6 +60,8 @@ void createProcess(state_t *c_state){
   RELEASE_LOCK(&global_lock);
 }
 void syscallHandler(int excepCode){
+  klog_print("sys handler acceso\n");
+
 // QUI VERIFICHIAMO SE E' in kernel mode
 /*
 important: In the implementation of each syscall, remember to access the global variables Process

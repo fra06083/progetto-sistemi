@@ -1,12 +1,14 @@
 #include "./headers/scheduler.h"
+extern int lock_0;
 void scheduler(){
     /* Remove the PCB from the head of the Ready Queue and store the pointer to the PCB in the
 Current Process field of the current CPU.
 */
+if (getPRID() != 0 || !lock_0){
 ACQUIRE_LOCK(&global_lock);  // Acquisiamo il lock
-
+}
 // Controllo se la ready queue è vuota
-if (list_empty(&pcbReady)) {
+if (emptyProcQ(&pcbReady)) {
     klog_print("Ready queue is empty.\n");
     if (process_count == 0) {
         // Ready queue vuota e nessun processo in esecuzione, quindi HALT
@@ -26,24 +28,27 @@ if (list_empty(&pcbReady)) {
 } else {
     klog_print("Dispatching next process...\n");
     // Dispatch del prossimo processo
-    int processid = getPRID();
+    int pid = getPRID();
     klog_print("Preso id\n");
     struct pcb_t *pcb = removeProcQ(&pcbReady);
+    if (pcb == NULL) {
+        klog_print("Error: PCB is NULL\n");
+    }
     klog_print("rimosso\n");
-    current_process[processid] = pcb;
-    klog_print("messso nel current process\n");
-    
+    current_process[pid] = pcb;
+    /*
+    if (lock_0 && pid == 0)
+    lock_0 = 0;
+    */
     // Settiamo il timeslice per il processo
     LDIT(TIMESLICE);
     setTIMER(TIMESLICE);  // Impostiamo il timer per il timeslice
     
     // Carichiamo il contesto del processo
-    klog_print("Caricamento del contesto del processo...\n");
     // Rilasciamo il lock dopo aver completato il dispatch
     RELEASE_LOCK(&global_lock);
-    klog_print("LOCK RILASCIATO\n");
     setTIMER(TIMESLICE);
-    LDST(&(pcb->p_s));
+    LDST(&(pcb->p_s)); // perché non lo carica??? dovrebbe caricare il test e partire ma fa NSYS
     klog_print("Contesto caricato\n");
 }
 }
