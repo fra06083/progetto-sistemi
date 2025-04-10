@@ -1,4 +1,11 @@
 #include "./headers/scheduler.h"
+void uTLB_RefillHandler() {
+    int prid = getPRID();
+    setENTRYHI(0x80000000);
+    setENTRYLO(0x00000000);
+    TLBWR();
+    LDST(GET_EXCEPTION_STATE_PTR(prid));
+    }
 void scheduler(){
     /* Remove the PCB from the head of the Ready Queue and store the pointer to the PCB in the
 Current Process field of the current CPU.

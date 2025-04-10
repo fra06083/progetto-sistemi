@@ -12,7 +12,6 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 
 
 */
-
 #include "./headers/initial.h"
  //DEFINIZIONE DELLE VARIABILI GLOBALI
 // int lock_0;
@@ -24,20 +23,6 @@ void configureIRT(int line, int cpu) {
 }
 
 void configurePassupVector() {
-  /*
-  volatile passupvector_t *pvector = (volatile passupvector_t *)PASSUPVECTOR;
-  
-  pvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
-  pvector->tlb_refill_stackPtr = KERNELSTACK;
-  pvector->exception_handler = (memaddr) exceptionHandler;
-
-  for (int cpu_id = 1; cpu_id < NCPU; cpu_id++) {
-      pvector = (volatile passupvector_t *)(PASSUPVECTOR + (cpu_id * 0x10));
-      pvector->tlb_refill_handler = (memaddr) uTLB_RefillHandler;
-      pvector->tlb_refill_stackPtr = 0x20020000 + (cpu_id * PAGESIZE);
-      pvector->exception_handler = (memaddr) exceptionHandler;
-  }
-  */
  for (int i = 0; i < NCPU; i++) {
   passupvector_t v;
   v.exception_handler = (memaddr) exceptionHandler;
@@ -46,8 +31,8 @@ void configurePassupVector() {
     v.tlb_refill_stackPtr = KERNELSTACK;
     v.exception_stackPtr  = KERNELSTACK;
  } else { 
-    v.tlb_refill_stackPtr = 0x20020000 + i * PAGESIZE;
-    v.exception_stackPtr  = 0x20020000 + i * PAGESIZE;
+    v.tlb_refill_stackPtr = RAMSTART + (64 * PAGESIZE) + (i * PAGESIZE);
+    v.exception_stackPtr  = BASE_STACK0 + (i * PAGESIZE);
   }
   // Scrive direttamente nella memoria mappata
  *((passupvector_t *)(PASSUPVECTOR + i * 0x10)) = v;
@@ -100,9 +85,8 @@ void configureCPUs() {
   stato.entry_hi = 0;
   stato.cause = 0;
   stato.mie = 0;
-  ACQUIRE_LOCK( & global_lock); // global lock acquisition to prevent other the CPUs to execute the test code
- // lock_0 = 1; // lock acquired by CPU0
-  lock_cpu0 = 1;
+  ACQUIRE_LOCK( & global_lock);
+  lock_cpu0 = 1; // prenndo il lock così sbloccando le cpu nello scheduler si bloccano al primo if. Sennò prenderebbero il programma test
   for (int i = 1; i < NCPU; i++) {
     stato.reg_sp = (0x20020000 + i * PAGESIZE);
     INITCPU(i, & stato);

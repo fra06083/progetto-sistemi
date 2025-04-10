@@ -44,10 +44,6 @@ extern pcb_t* currentProcess[NCPU]; // Array dei processi in esecuzione
 extern int deviceSemaphores[NRSEMAPHORES]; // I semafori per i dispositivi, ad 
 
 extern void test();
-extern void scheduler();
-extern void exceptionHandler();
-extern void interruptHandler();
-
 // NOSTRE FUNZIONI
 void initializeSystem();
 void configurePassupVector();
