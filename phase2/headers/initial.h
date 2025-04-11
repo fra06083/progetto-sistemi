@@ -40,6 +40,7 @@ int lock_cpu0;
 // extern perché sennò darebbe errore il compilatore
 // extern fa capire solamente che la funzione è definita in un altro file
 extern void test();
+extern void uTLB_RefillHandler();
 // NOSTRE FUNZIONI
 void initializeSystem();
 void configurePassupVector();

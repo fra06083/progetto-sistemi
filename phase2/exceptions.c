@@ -59,7 +59,16 @@ void createProcess(state_t *c_state){
 void terminateProcess(state_t *c_state, unsigned int p_id){
   // dobbiamo terminare il processo corrente
   ACQUIRE_LOCK(&global_lock);
-
+  if (p_id==0){
+    // terminiamo il processo
+    removeProcQ(&pcbReady);
+    process_count--;
+    current_process[0] = NULL;
+  } else {
+   // GET_EXCEPTION_STATE_PTR(p_id); ?? tutor dice di usare questo
+  }
+  RELEASE_LOCK(&global_lock);
+  
 }
 void syscallHandler(int excepCode){
   klog_print("sys handler acceso\n");
