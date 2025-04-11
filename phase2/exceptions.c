@@ -7,9 +7,6 @@ if the status register with saved_exception_state->status & MSTATUS_MPP_MASK see
 Rovelli’s thesis for more details.
 
 */
-extern void interruptHandler();
-
-
 void uTLB_ExceptionHandler(){
 
 
@@ -59,6 +56,11 @@ void createProcess(state_t *c_state){
   c_state->reg_a0 = new_process->p_pid;
   RELEASE_LOCK(&global_lock);
 }
+void terminateProcess(state_t *c_state, unsigned int p_id){
+  // dobbiamo terminare il processo corrente
+  ACQUIRE_LOCK(&global_lock);
+
+}
 void syscallHandler(int excepCode){
   klog_print("sys handler acceso\n");
 
@@ -80,8 +82,8 @@ if (stato->reg_a0 < 0 && iskernel){
     createProcess(stato);
     break;
    case TERMPROCESS:
-    SYSCALL(TERMPROCESS, p_id, 0, 0); // dovrebbe essere giusto
-    break;
+    terminateProcess(stato, p_id);
+   break;
    case PASSEREN:
   // Questo servizio richiede al Nucleus di eseguire un'operazione P su un semaforo binario. 
   // Il servizio P o NSYS3 viene richiesto dal processo chiamante posizionando il valore -3 in a0, 
@@ -89,7 +91,8 @@ if (stato->reg_a0 < 0 && iskernel){
   // A seconda del valore del semaforo, il controllo viene restituito al Processo Corrente alla CPU corrente, 
   // oppure questo processo viene bloccato sull'ASL (passa da "running" a "blocked") <= dobbiamo cambiarlo, direi di fare delle if e viene chiamato lo Scheduler.
     // prendiamo il semaforo ma come controlliamo se è 0 o 1?
- /*   if (semaforo->s_key > 1){
+    semd_t *semaforo = (semd_t *)stato->reg_a1;
+    if (*semaforo->s_key > 1){
       // fa la p e continua il processo
       semaforo->s_key--;
     } else {
@@ -98,21 +101,15 @@ if (stato->reg_a0 < 0 && iskernel){
       // e poi facciamo lo scheduler
       // se il semaforo è 0, allora dobbiamo bloccare il processo corrente
       // e fare lo scheduler
-
-
-
-
-      insertBlocked(&stato->reg_a1, current_process[p_id]);
+      insertBlocked(semaforo->s_key, current_process[p_id]);
       // process_count--; ??? non è più attivo
       current_process[p_id]->p_time = 0;
       current_process[p_id] = NULL;
-  */
       // impostiamo a blocked qui manca istruzione
       // scheduler() ???
-      SYSCALL(PASSEREN, (memaddr) stato->reg_a1, 0, 0); // fa la gestione dei blocked la syscall?
+    }
     break;
     case VERHOGEN:
-      SYSCALL(VERHOGEN, (memaddr) stato->reg_a1, 0, 0);
     break;
    case DOIO:
     // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.

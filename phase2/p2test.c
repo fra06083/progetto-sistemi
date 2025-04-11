@@ -19,6 +19,8 @@
 #include "../headers/types.h"
 #include <uriscv/liburiscv.h>
 
+// #include "../klog.c"
+
 typedef unsigned int devregtr;
 
 /* hardware constants */
@@ -145,7 +147,7 @@ void uTLB_RefillHandler() {
 /*                 p1 -- the root process                            */
 /*                                                                   */
 void test() {
-    klog_print("| SONO ENTRATO NEL TEST \n");
+  //  klog_print("| SONO ENTRATO NEL TEST \n");
     SYSCALL(VERHOGEN, (int)&sem_testsem, 0, 0); /* V(sem_testsem)   */
 
     print("p1 v(sem_testsem)\n");

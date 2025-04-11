@@ -16,6 +16,7 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
  //DEFINIZIONE DELLE VARIABILI GLOBALI
 // int lock_0;
 // FUNZIONI DI CONFIGURAZIONE
+extern void test();
 void configureIRT(int line, int cpu) {
   volatile memaddr * indirizzo_IRT = (volatile memaddr * )(IRT_START + (line * WS));
   * indirizzo_IRT |= IRT_RP_BIT_ON; // setta il bit di routing policy 1 << 28 in sostanza mette 1 a rp (|= non cancella la vecchia conf)

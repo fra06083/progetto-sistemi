@@ -9,7 +9,9 @@
 #include "uriscv/arch.h"
 #include "uriscv/cpu.h"
 
-#include "../p2test.c"
+#include "../../headers/const.h"
+#include "../../headers/types.h"
+#include <uriscv/liburiscv.h>
 
 #include "../exceptions.c"
 #include "../interrupts.c"
@@ -35,14 +37,8 @@ struct semd_t sem[NRSEMAPHORES];
 volatile unsigned int global_lock = 0;      // Lock globale
 struct list_head pcbReady;              // Lista dei processi pronti
 int lock_cpu0;
-
 // extern perché sennò darebbe errore il compilatore
 // extern fa capire solamente che la funzione è definita in un altro file
-extern int process_count;            // Numero di processi attivi
-extern struct list_head pcbReady;   // Ready queue
-extern pcb_t* currentProcess[NCPU]; // Array dei processi in esecuzione
-extern int deviceSemaphores[NRSEMAPHORES]; // I semafori per i dispositivi, ad 
-
 extern void test();
 // NOSTRE FUNZIONI
 void initializeSystem();
