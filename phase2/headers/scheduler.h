@@ -9,5 +9,4 @@ extern volatile unsigned int global_lock;
 extern int lock_cpu0;
 // METODI
 void scheduler();
-void terminateProcess(state_t *c_state, unsigned int p_id);
 #endif
