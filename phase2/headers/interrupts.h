@@ -1,15 +1,14 @@
-#ifndef INTERRUPTS_H
-#define INTERRUPTS_H
+#ifndef INT_H_INCLUDED
+#define INT_H_INCLUDED
 
 #include "../../headers/const.h"
 #include "../../headers/listx.h"
 #include "../../phase1/headers/pcb.h"
-#include "initial.h"
 
 // Dichiarazioni extern per variabili definite in initial.h
-extern pcb_t *currentProcess[NCPU]; 
-extern struct list_head readyQueue;
-extern volatile unsigned int globalLock;
+extern pcb_t *current_process[NCPU]; 
+extern struct list_head pcbReady;
+extern volatile unsigned int global_Lock;
 
 // Prototipi funzioni
 void interruptHandler();

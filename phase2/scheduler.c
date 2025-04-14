@@ -1,133 +1,50 @@
-// interrupts.c
-#include "interrupts.h"
+#include "./headers/scheduler.h"
 
 
-// Dichiarazioni esterne dalle altre parti del progetto
-extern pcb_t *current_process[NCPU];
-extern struct list_head pcbReady;
-extern volatile unsigned int global_lock;
-extern semd_t sem[];
+void scheduler() {
 
-// Funzione di supporto per trovare semaforo (implementata in ASL)
-extern semd_t* findSemaphore(int *semAddr);
-
-//----------------------------------------------------------
-// Interrupt Handler Principale
-//----------------------------------------------------------
-void interruptHandler() {
-    unsigned int cause = getCAUSE();
-    int excCode = cause & CAUSE_EXCCODE_MASK;
-
-    if (excCode == IL_CPUTIMER) {
-        handlePLTInterrupt();
-    } else if (excCode == IL_TIMER) {
-        handleIntervalTimerInterrupt();
+  /* Remove the PCB from the head of the Ready Queue and store the pointer to the PCB in the
+Current Process field of the current CPU.
+*/
+  if (getPRID() != 0 || !lock_cpu0) {
+    ACQUIRE_LOCK( & global_lock); // Blocchiamo le altre cpu
+  }
+  // Controllo se la ready queue è vuota
+  if (emptyProcQ( & pcbReady)) {
+    if (process_count == 0) {
+      // Ready queue vuota e nessun processo in esecuzione, quindi HALT
+      RELEASE_LOCK( & global_lock); // Rilascio del lock prima di HALT
+      HALT(); // Fermiamo l'esecuzione
     } else {
-        // Scansione linee di interrupt 3-7 (dispositivi)
-        for(int intLine = 3; intLine <= 7; intLine++) {
-            memaddr bitmapAddr = 0x10000040 + (intLine - 3) * 4;
-            unsigned int bitmap = *((unsigned int*)bitmapAddr);
-            
-            if(bitmap != 0) {
-                for(int devNo = 0; devNo < 8; devNo++) {
-                    if(bitmap & (1 << devNo)) {
-                        handleDeviceInterrupt(intLine, devNo);
-                        return;
-                    }
-                }
-            }
-        }
+      // Ready queue vuota, ma ci sono processi in esecuzione, quindi WAIT
+      setMIE(MIE_ALL & ~MIE_MTIE_MASK);
+      unsigned int status = getSTATUS();
+      status |= MSTATUS_MIE_MASK;
+      setSTATUS(status);
+      *((memaddr * ) TPR) = 1; // Settiamo il TPR a 1 prima di fare WAIT
+      RELEASE_LOCK(&global_lock);
+      WAIT();
     }
-}
-
-//----------------------------------------------------------
-// Gestione Interrupt Dispositivo (Sezione 7.1)
-//----------------------------------------------------------
-void handleDeviceInterrupt(int intLine, int devNo) {
-    ACQUIRE_LOCK(&global_lock);
-    int cpuid = getPRID();
-
-    // Calcolo indirizzo dispositivo
-    memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (devNo * 0x10);
-    
-    // Lettura status e ACK
-    unsigned int status = *((unsigned int*)devAddr);
-    *((unsigned int*)(devAddr + 0x4)) = ACK;
-
-    // Gestione semaforo
-    semd_t *semd = findSemaphore((int*)devAddr);
-    if(semd != NULL && !list_empty(&semd->s_procq)) {
-        pcb_t *pcb = container_of(semd->s_procq.next, pcb_t, p_list);
-        list_del(&pcb->p_list);
-        pcb->p_semAdd = NULL;
-        pcb->p_s.a0 = status; // Stato nel registro a0
-        
-        // Inserimento in ready queue
-        list_add_tail(&pcb->p_list, &pcbReady);
+  } else {
+    klog_print("Dispatching next process...\n");
+    // Dispatch del prossimo processo
+    int pid = getPRID();
+    klog_print("Preso id\n");
+    struct pcb_t * pcb = removeProcQ( & pcbReady);
+    if (pcb == NULL) {
+      klog_print("Error: PCB is NULL\n");
     }
-
-    RELEASE_LOCK(&global_lock);
-
-    // Ripristino esecuzione
-    if(current_process[cpuid] != NULL) {
-        LDST(&current_process[cpuid]->p_s);
-    } else {
-        scheduler();
-    }
-}
-
-//----------------------------------------------------------
-// Gestione PLT (Sezione 7.2)
-//----------------------------------------------------------
-void handlePLTInterrupt() {
-    ACQUIRE_LOCK(&global_lock);
-    int cpuid = getPRID();
-
-    // Ricarica timer
+    klog_print("rimosso\n");
+    current_process[pid] = pcb;
+    if (lock_cpu0 && pid == 0)
+      lock_cpu0 = 0;
+    // Settiamo il timeslice per il processo
+    LDIT(TIMESLICE);
+    setTIMER(TIMESLICE); // Impostiamo il timer per il timeslice
+    // Rilasciamo il lock dopo aver completato il dispatch
+    RELEASE_LOCK( & global_lock);
     setTIMER(TIMESLICE);
-
-    // Aggiornamento processo corrente
-    if(current_process[cpuid] != NULL) {
-        // Calcolo tempo utilizzato
-        cpu_t endTime;
-        STCK(endTime);
-        current_process[cpuid]->p_time += (endTime - current_process[cpuid]->p_s.tod);
-        
-        // Reinserimento in ready queue
-        list_add_tail(&current_process[cpuid]->p_list, &pcbReady);
-        current_process[cpuid] = NULL;
-    }
-
-    RELEASE_LOCK(&global_lock);
-    scheduler();
-}
-
-//----------------------------------------------------------
-// Gestione Interval Timer (Sezione 7.3)
-//----------------------------------------------------------
-void handleIntervalTimerInterrupt() {
-    ACQUIRE_LOCK(&global_lock);
-
-    // Ricarica timer
-    LDIT(PSECOND);
-
-    // Sblocco processi pseudo-clock (sem[NSEMAPHORES-1])
-    semd_t *clockSem = &sem[NRSEMAPHORES - 1];
-    if(!list_empty(&clockSem->s_procq)) {
-        struct list_head *pos, *tmp;
-        list_for_each_safe(pos, tmp, &clockSem->s_procq) {
-            pcb_t *pcb = container_of(pos, pcb_t, p_list);
-            list_del(pos);
-            list_add_tail(pos, &pcbReady);
-        }
-    }
-
-    RELEASE_LOCK(&global_lock);
-
-    // Ripristino esecuzione
-    if(current_process[getPRID()] != NULL) {
-        LDST(&current_process[getPRID()]->p_s);
-    } else {
-        scheduler();
-    }
+    // Carichiamo il contesto del processo
+    LDST(&(pcb -> p_s));
+  }
 }
