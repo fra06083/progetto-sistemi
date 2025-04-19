@@ -114,6 +114,32 @@ pcb_t *outBlocked(pcb_t *p)
     }
  return NULL; // non trovato quindi è error condition
 }
+/* FUNZIONE AGGIUNTA IN FASE 2:
+In sostanza è una funzione che cerca un processo in blocked queue
+e se lo trova lo rimuove dalla blocked queue (se remove è >0) e lo restituisce.
+*/
+pcb_t *findBlockedPid(int pid, int remove)
+{
+    semd_t *entry = NULL;
+    list_for_each_entry(entry, &semd_h, s_link)
+    {
+        pcb_t *processo = NULL;
+        list_for_each_entry(processo, &entry->s_procq, p_list)
+        {
+            if (processo->p_pid == pid)
+            {
+                if (remove)
+                {
+                    // se remove è true, rimuoviamo il processo dalla blocked queue
+                    processo = outBlocked(processo);
+                    return processo;
+                }
+                return processo;
+            }
+        }
+    }
+    return NULL; // non trovato quindi è error condition
+}
 /*
 Return a pointer to the PCB that is at the head of the process queue associated with the
 semaphore semAdd. Return NULL if semAdd is not found on the ASL or if the process queue
@@ -131,4 +157,15 @@ pcb_t *headBlocked(int *semAdd)
         }
     }
     return NULL; // semAdd is not found.
+}
+
+/* FUNZIONE AGGIUNTA IN FASE 2, trova il semaforo e lo restituisce */
+semd_t *findSemaphore(int *semAdd) {
+    semd_t *entry = NULL;
+    list_for_each_entry(entry, &semd_h, s_link) {
+        if (entry->s_key == semAdd) {
+            return entry; // trovato
+        }
+    }
+    return NULL; // non trovato
 }

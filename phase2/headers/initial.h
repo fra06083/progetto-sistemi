@@ -13,6 +13,7 @@
 #include "../../headers/types.h"
 #include <uriscv/liburiscv.h>
 
+#include "../functions.c"
 #include "../exceptions.c"
 #include "../interrupts.c"
 #include "../scheduler.c"

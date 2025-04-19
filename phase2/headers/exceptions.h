@@ -1,6 +1,7 @@
 #ifndef EXC_H_INCLUDED
 #define EXC_H_INCLUDED
 #include "interrupts.h"
+#include "functions.h"
 extern void scheduler();
 extern volatile unsigned int global_lock;
 extern int process_count;

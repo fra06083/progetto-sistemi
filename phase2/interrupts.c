@@ -1,14 +1,10 @@
 #include "./headers/interrupts.h"
 
 
-// Dichiarazioni esterne dalle altre parti del progetto
-extern pcb_t *current_process[NCPU];
-extern struct list_head pcbReady;
-extern volatile unsigned int global_lock;
-extern semd_t sem[];
+
 
 // Funzione di supporto per trovare semaforo (implementata in ASL)
-extern semd_t* findSemaphore(int *semAddr);
+extern semd_t* findSemaphore(int *semAddr); // non esiste, la metteremo noi in functions.c
 
 
 // Interrupt Handler Principale
@@ -57,7 +53,7 @@ void handleDeviceInterrupt(int intLine, int devNo) {
         pcb_t *pcb = container_of(semd->s_procq.next, pcb_t, p_list);
         list_del(&pcb->p_list);
         pcb->p_semAdd = NULL;
-        pcb->p_s.a0 = status; // Stato nel registro a0
+ //       pcb->p_s.reg_a0 = status; // Stato nel registro a0 E' Sbagliato, dobbiamo convertire, contrgollate
         
         // Inserimento in ready queue
         list_add_tail(&pcb->p_list, &pcbReady);
@@ -87,7 +83,7 @@ void handlePLTInterrupt() {
         // Calcolo tempo utilizzato
         cpu_t endTime;
         STCK(endTime);
-        current_process[cpuid]->p_time += (endTime - current_process[cpuid]->p_s.tod);
+   // WRONG!!!!     current_process[cpuid]->p_time += (endTime - current_process[cpuid]->p_s);
         
         // Reinserimento in ready queue
         list_add_tail(&current_process[cpuid]->p_list, &pcbReady);
@@ -109,8 +105,8 @@ void handleIntervalTimerInterrupt() {
     // Sblocco processi pseudo-clock (sem[NSEMAPHORES-1])
     semd_t *clockSem = &sem[NRSEMAPHORES - 1];
     if(!list_empty(&clockSem->s_procq)) {
-        struct list_head *pos, *tmp;
-        list_for_each_safe(pos, tmp, &clockSem->s_procq) {
+        struct list_head *pos;
+        list_for_each(pos, &clockSem->s_procq) {
             pcb_t *pcb = container_of(pos, pcb_t, p_list);
             list_del(pos);
             list_add_tail(pos, &pcbReady);

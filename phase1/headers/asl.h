@@ -9,5 +9,6 @@ pcb_t* removeBlocked(int* semAdd);
 /* pcb_t* outBlockedPid(int pid); DA NON IMPLEMENTARE, inutile ed ho chiesto ai tutor */
 pcb_t* outBlocked(pcb_t* p);
 pcb_t* headBlocked(int* semAdd);
-
+pcb_t* findBlockedPid(int pid, int remove);
+semd_t* findSemaphore(int* semAdd);
 #endif

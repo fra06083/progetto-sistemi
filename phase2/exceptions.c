@@ -39,6 +39,7 @@ void exceptionHandler()
         programTrapHandler();
     }
 }
+
 void createProcess(state_t *c_state){
   ACQUIRE_LOCK(&global_lock);
   pcb_t *new_process = allocPcb();
@@ -61,15 +62,25 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
   ACQUIRE_LOCK(&global_lock);
   if (p_id==0){
     // terminiamo il processo
-    removeProcQ(&pcbReady);
+    killProcess(current_process[getPRID()]);
+    current_process[p_id] = NULL;
     process_count--;
     current_process[0] = NULL;
-  } else {
-   // GET_EXCEPTION_STATE_PTR(p_id); ?? tutor dice di usare questo
+    RELEASE_LOCK(&global_lock);
+    scheduler(); // va nello scheduler se abbiamo terminato il processo corrente
+  } else { 
+    // CERCHIAMO il processo, mettiamo true così lo rimuove di già
+  pcb_t *process = findProcess(p_id, 1);
+  if (process == NULL){
+    RELEASE_LOCK(&global_lock); // non lo abbiamo trovato, il termprocess vuole terminare un processo che non esiste
+    // dovremo far ripartire l'esecuzione del processo ma come??
   }
+  killProcess(process);
   RELEASE_LOCK(&global_lock);
-  
+  // dovremo far ripartire l'esecuzione del processo ma come??
+  }
 }
+
 void syscallHandler(int excepCode){
   klog_print("sys handler acceso\n");
 
@@ -91,7 +102,7 @@ if (stato->reg_a0 < 0 && iskernel){
     createProcess(stato);
     break;
    case TERMPROCESS:
-    terminateProcess(stato, p_id);
+    terminateProcess(stato, stato->reg_a1);
    break;
    case PASSEREN:
   // Questo servizio richiede al Nucleus di eseguire un'operazione P su un semaforo binario. 
