@@ -63,19 +63,18 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
   if (p_id==0){
     // terminiamo il processo
     killProcess(current_process[getPRID()]);
-    current_process[p_id] = NULL;
+    current_process[getPRID()] = NULL;
     process_count--;
-    current_process[0] = NULL;
     RELEASE_LOCK(&global_lock);
     scheduler(); // va nello scheduler se abbiamo terminato il processo corrente
   } else { 
     // CERCHIAMO il processo, mettiamo true così lo rimuove di già
   pcb_t *process = findProcess(p_id, 1);
-  if (process == NULL){
-    RELEASE_LOCK(&global_lock); // non lo abbiamo trovato, il termprocess vuole terminare un processo che non esiste
+  if (process != NULL){
+    killProcess(process); // non lo abbiamo trovato, il termprocess vuole terminare un processo che non esiste
     // dovremo far ripartire l'esecuzione del processo ma come??
+    scheduler();
   }
-  killProcess(process);
   RELEASE_LOCK(&global_lock);
   // dovremo far ripartire l'esecuzione del processo ma come??
   }
