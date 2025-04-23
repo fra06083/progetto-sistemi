@@ -1,5 +1,9 @@
+#include "../../headers/types.h"
+
+
 #ifndef INT_H_INCLUDED
 #define INT_H_INCLUDED
+
 
 
 // Dichiarazioni extern per variabili definite in initial.h

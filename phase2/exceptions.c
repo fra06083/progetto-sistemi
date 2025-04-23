@@ -1,4 +1,5 @@
 #include "./headers/exceptions.h"
+
 /*
 
 Important: To determine if the Current Process was executing in kernel-mode or user-mode,
@@ -78,6 +79,68 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
   }
 }
 
+void P(state_t* stato, unsigned int p_id){
+  // Questo servizio richiede al Nucleus di eseguire un'operazione P su un semaforo binario. 
+  // Il servizio P o NSYS3 viene richiesto dal processo chiamante posizionando il valore -3 in a0, 
+  // l'indirizzo fisico del semaforo su cui eseguire l'operazione P è in a1, e poi dobbiamo eseguire la SYSCALL. 
+  // A seconda del valore del semaforo, il controllo viene restituito al Processo Corrente alla CPU corrente, 
+  // oppure questo processo viene bloccato sull'ASL (passa da "running" a "blocked") <= dobbiamo cambiarlo, direi di fare delle if e viene chiamato lo Scheduler.
+    // prendiamo il semaforo ma come controlliamo se è 0 o 1?
+    klog_print(" Syscall handler PASSEREN() ");
+    semd_t *semaforo = (semd_t *)stato->reg_a1;
+    if (*semaforo->s_key == 1){
+      klog_print(" P() if ");
+      // fa la p e continua il processo
+      ACQUIRE_LOCK(&global_lock);
+      *semaforo->s_key--;
+      RELEASE_LOCK(&global_lock);
+    } else {
+      klog_print(" P() else ");
+      // fa la p e lo mette in blocked
+      // dobbiamo fare un'operazione di enqueue sul semaforo
+      // e poi facciamo lo scheduler
+      // se il semaforo è 0, allora dobbiamo bloccare il processo corrente
+      // e fare lo scheduler
+      ACQUIRE_LOCK(&global_lock);
+      pcb_t* pcbBlocked = current_process[p_id];
+      insertBlocked(semaforo->s_key, &pcbBlocked);
+      process_count--; 
+      pcbBlocked->p_time = 0;
+      current_process[p_id] = NULL;
+      RELEASE_LOCK(&global_lock);
+      //scheduler ?? 
+      scheduler();
+    }
+}
+
+void V(state_t* stato, unsigned int p_id){
+  klog_print("SyscallHandler: VERHOGEN");
+  semd_t *semaforo = (semd_t *)stato->reg_a1;
+  //if (*semaforo->s_key == 0){     PREV - RIGA 
+  if(!emptyProcQ(&semaforo->s_procq)){
+    klog_print(" V() if ");
+    // fa la p e continua il processo
+    ACQUIRE_LOCK(&global_lock);
+    pcb_t *processo_sbloccato = removeBlocked(semaforo->s_key);
+    if (processo_sbloccato != NULL){
+      // dobbiamo fare lo scheduler
+      // e mettere il processo in ready
+      processo_sbloccato->p_semAdd = NULL;  //processo così dovrebbe essere sbloccato 
+      insertProcQ(&pcbReady, processo_sbloccato);
+      process_count++;
+      RELEASE_LOCK(&global_lock);
+      //LDST(&(processo_sbloccato->p_s));   PREV - RIGA
+      scheduler();
+    }else RELEASE_LOCK(&global_lock);
+  } else {
+    klog_print(" V() else ");
+    ACQUIRE_LOCK(&global_lock);
+    *semaforo->s_key++;
+    RELEASE_LOCK(&global_lock);
+  }
+
+}
+
 void syscallHandler(state_t *stato){
 
 // QUI VERIFICHIAMO SE E' in kernel mode
@@ -101,50 +164,10 @@ if (registro < 0 && iskernel){
     terminateProcess(stato, stato->reg_a1);
    break;
    case PASSEREN:
-  // Questo servizio richiede al Nucleus di eseguire un'operazione P su un semaforo binario. 
-  // Il servizio P o NSYS3 viene richiesto dal processo chiamante posizionando il valore -3 in a0, 
-  // l'indirizzo fisico del semaforo su cui eseguire l'operazione P è in a1, e poi dobbiamo eseguire la SYSCALL. 
-  // A seconda del valore del semaforo, il controllo viene restituito al Processo Corrente alla CPU corrente, 
-  // oppure questo processo viene bloccato sull'ASL (passa da "running" a "blocked") <= dobbiamo cambiarlo, direi di fare delle if e viene chiamato lo Scheduler.
-    // prendiamo il semaforo ma come controlliamo se è 0 o 1?
-    semd_t *semaforo = (semd_t *)stato->reg_a1;
-    if (*semaforo->s_key > 1){
-      // fa la p e continua il processo
-      *semaforo->s_key--;
-    } else {
-      // fa la p e lo mette in blocked
-      // dobbiamo fare un'operazione di enqueue sul semaforo
-      // e poi facciamo lo scheduler
-      // se il semaforo è 0, allora dobbiamo bloccare il processo corrente
-      // e fare lo scheduler
-      insertBlocked(semaforo->s_key, current_process[p_id]);
-      // process_count--; ??? non è più attivo
-      current_process[p_id]->p_time = 0;
-      current_process[p_id] = NULL;
-      // impostiamo a blocked qui manca istruzione
-      // scheduler() ???
-    }
+    P(stato, p_id);
     break;
     case VERHOGEN:
-    klog_print("SyscallHandler: VERHOGEN");
-    semd_t *sem = (semd_t *)stato->reg_a1;
-    if (*sem->s_key == 0){
-      // fa la p e continua il processo
-      ACQUIRE_LOCK(&global_lock);
-      pcb_t *processo_sbloccato = removeBlocked(sem->s_key);
-      if (processo_sbloccato != NULL){
-        // dobbiamo fare lo scheduler
-        // e mettere il processo in ready
-        insertProcQ(&pcbReady, processo_sbloccato);
-        process_count++;
-        RELEASE_LOCK(&global_lock);
-        LDST(&(processo_sbloccato->p_s));
-      }
-    } else {
-      ACQUIRE_LOCK(&global_lock);
-      *semaforo->s_key++;
-      RELEASE_LOCK(&global_lock);
-    }
+    V(stato, p_id);
     break;
    case DOIO:
     // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
