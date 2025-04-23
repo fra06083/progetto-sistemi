@@ -1,4 +1,5 @@
 #include "headers/functions.h"
+
 void killProcess(pcb_t *process){
     // dobbiamo terminare il processo
     // e poi liberare la memoria

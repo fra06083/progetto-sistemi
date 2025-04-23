@@ -16,10 +16,8 @@ void programTrapHandler(){
 }
 void exceptionHandler()
 {
-  klog_print("Exception handler acceso\n");
     state_t *stato = GET_EXCEPTION_STATE_PTR(getPRID());
-    int getExcepCode = stato->cause & CAUSE_EXCCODE_MASK;
-
+    int getExcepCode = getCAUSE() & CAUSE_EXCCODE_MASK;
     // Dobbiamo determinare se viene eseguito in Kernel-mode o User-mode
     // qui mandiamo l'eccezione al gestore delle interruzioni
     if (CAUSE_IS_INT(getExcepCode))
@@ -33,7 +31,7 @@ void exceptionHandler()
         uTLB_ExceptionHandler();
     } else if (getExcepCode >= 8 && getExcepCode <= 11) {
         /* Nucleus’s SYSCALL exception handler */
-        syscallHandler(getExcepCode);
+        syscallHandler(stato);
     } else {
         /* Nucleus’s Program Trap exception handler */
         programTrapHandler();
@@ -80,8 +78,7 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
   }
 }
 
-void syscallHandler(int excepCode){
-  klog_print("sys handler acceso\n");
+void syscallHandler(state_t *stato){
 
 // QUI VERIFICHIAMO SE E' in kernel mode
 /*
@@ -89,13 +86,13 @@ important: In the implementation of each syscall, remember to access the global 
 Count, Ready Queue and Device Semaphores in a mutually exclusive way using ACQUIRE_LOCK and
 RELEASE_LOCK on the Global Lock, in order to avoid race condition.
 */
-state_t *stato = GET_EXCEPTION_STATE_PTR(excepCode);
 int iskernel = stato->status & MSTATUS_MPP_M;
 unsigned int p_id = getPRID();
-if (stato->reg_a0 < 0 && iskernel){
+int registro = stato->reg_a0;
+if (registro < 0 && iskernel){
     // se il valore di a0 è negativo e siamo in kernel mode
     // allora dobbiamo fare un'azione descritta nella pagina 7 del pdf
-   switch (stato->reg_a0)
+   switch (registro)
    {
    case CREATEPROCESS:
     createProcess(stato);
@@ -129,6 +126,7 @@ if (stato->reg_a0 < 0 && iskernel){
     }
     break;
     case VERHOGEN:
+    klog_print("SyscallHandler: VERHOGEN");
     break;
    case DOIO:
     // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
@@ -147,6 +145,7 @@ if (stato->reg_a0 < 0 && iskernel){
    programTrapHandler();
    }
 } else {
+  klog_print("SyscallHandler > 0");
   stato->cause = PRIVINSTR; // perché non è possibile usare questi casi in usermode.
   programTrapHandler();
 }

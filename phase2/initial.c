@@ -10,13 +10,11 @@ process count, Global Lock, blocked PCBs lists/pointers, etc.).
 handlers. Furthermore, this module will contain the provided skeleton TLB-Refill event handler
 (e.g. uTLB_RefillHandler)
 
-
 */
 #include "./headers/initial.h"
  //DEFINIZIONE DELLE VARIABILI GLOBALI
 // int lock_0;
 // FUNZIONI DI CONFIGURAZIONE
-extern void test();
 void configureIRT(int line, int cpu) {
   volatile memaddr * indirizzo_IRT = (volatile memaddr * )(IRT_START + (line * WS));
   * indirizzo_IRT |= IRT_RP_BIT_ON; // setta il bit di routing policy 1 << 28 in sostanza mette 1 a rp (|= non cancella la vecchia conf)
@@ -44,6 +42,7 @@ void configurePassupVector() {
 //FUNZIONE DI INIZIALIZZAZIONE
 void initializeSystem() {
   klog_print("Starting Nucleus.\n");
+  configurePassupVector(); // PUNTO DUE
   initPcbs();
   initASL();
   mkEmptyProcQ( & pcbReady);
@@ -56,7 +55,6 @@ void initializeSystem() {
     };
   }
   LDIT(PSECOND);
-  configurePassupVector();
 }
 
 // FUNZIONE CHE CREA IL PRIMO PROCESSO
@@ -65,8 +63,8 @@ void createFirstProcess() {
   (first_process -> p_s).mie = MIE_ALL;
   (first_process -> p_s).status = MSTATUS_MIE_MASK | MSTATUS_MPP_M;
   //  stato->reg_sp = RAMTOP(stato->reg_sp);
-  RAMTOP((first_process -> p_s).reg_sp);
   (first_process -> p_s).pc_epc = (memaddr) test;
+  RAMTOP(first_process->p_s.reg_sp);
   insertProcQ( & pcbReady, first_process);
   process_count++;
 }
@@ -86,10 +84,10 @@ void configureCPUs() {
   stato.entry_hi = 0;
   stato.cause = 0;
   stato.mie = 0;
-  ACQUIRE_LOCK( & global_lock);
-  lock_cpu0 = 1; // prenndo il lock così sbloccando le cpu nello scheduler si bloccano al primo if. Sennò prenderebbero il programma test
+  ACQUIRE_LOCK(&global_lock);
+  lock_cpu0 = 1; // prendo il lock così sbloccando le cpu nello scheduler si bloccano al primo if. Sennò prenderebbero il programma test
   for (int i = 1; i < NCPU; i++) {
-    stato.reg_sp = (0x20020000 + i * PAGESIZE);
+    stato.reg_sp = (0x20020000 + (i * PAGESIZE));
     INITCPU(i, & stato);
   }
   klog_print("CPU settate!\n");

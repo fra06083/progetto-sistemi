@@ -43,7 +43,6 @@ Current Process field of the current CPU.
     setTIMER(TIMESLICE); // Impostiamo il timer per il timeslice
     // Rilasciamo il lock dopo aver completato il dispatch
     RELEASE_LOCK( & global_lock);
-    setTIMER(TIMESLICE);
     // Carichiamo il contesto del processo
     LDST(&(pcb -> p_s));
   }
