@@ -110,7 +110,7 @@ if (registro < 0 && iskernel){
     semd_t *semaforo = (semd_t *)stato->reg_a1;
     if (*semaforo->s_key > 1){
       // fa la p e continua il processo
-      semaforo->s_key--;
+      *semaforo->s_key--;
     } else {
       // fa la p e lo mette in blocked
       // dobbiamo fare un'operazione di enqueue sul semaforo
@@ -127,6 +127,24 @@ if (registro < 0 && iskernel){
     break;
     case VERHOGEN:
     klog_print("SyscallHandler: VERHOGEN");
+    semd_t *sem = (semd_t *)stato->reg_a1;
+    if (*sem->s_key == 0){
+      // fa la p e continua il processo
+      ACQUIRE_LOCK(&global_lock);
+      pcb_t *processo_sbloccato = removeBlocked(sem->s_key);
+      if (processo_sbloccato != NULL){
+        // dobbiamo fare lo scheduler
+        // e mettere il processo in ready
+        insertProcQ(&pcbReady, processo_sbloccato);
+        process_count++;
+        RELEASE_LOCK(&global_lock);
+        LDST(&(processo_sbloccato->p_s));
+      }
+    } else {
+      ACQUIRE_LOCK(&global_lock);
+      *semaforo->s_key++;
+      RELEASE_LOCK(&global_lock);
+    }
     break;
    case DOIO:
     // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
