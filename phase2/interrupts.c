@@ -1,10 +1,6 @@
 #include "headers/interrupts.h"
 
 
-// Funzione di supporto per trovare semaforo (implementata in ASL)
-extern semd_t* findSemaphore(int *semAddr); // non esiste, la metteremo noi in functions.c
-
-
 // Interrupt Handler Principale
 void interruptHandler() {
 
