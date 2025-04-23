@@ -1,7 +1,6 @@
 #ifndef INT_H_INCLUDED
 #define INT_H_INCLUDED
 
-#include "initial.h"
 
 // Dichiarazioni extern per variabili definite in initial.h
 extern pcb_t *current_process[NCPU]; 
