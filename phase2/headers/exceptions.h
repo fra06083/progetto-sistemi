@@ -1,8 +1,10 @@
 #ifndef EXC_H_INCLUDED
 #define EXC_H_INCLUDED
+#include "dipendenze.h"
 #include "interrupts.h"
 #include "functions.h"
-
+#include "../../phase1/headers/asl.h"
+#include "../../phase1/headers/pcb.h"
 extern void scheduler();
 extern volatile unsigned int global_lock;
 extern int process_count;

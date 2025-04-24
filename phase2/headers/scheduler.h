@@ -1,6 +1,6 @@
 #ifndef SCH_H_INCLUDED
 #define SCH_H_INCLUDED
-
+#include "dipendenze.h"
 extern int process_count;
 extern struct pcb_t *current_process[NCPU];
 extern struct list_head pcbReady;

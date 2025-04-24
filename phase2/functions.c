@@ -42,3 +42,15 @@ pcb_t *findProcess(int pid, int remove) {
   pcb_t *bloccato = findBlockedPid(pid, 1);
     return NULL; // non trovato
 }
+// implementazione della funzione memcpy che sennò dà problemi e dobbiamo impazzire
+// Copia 'len' byte dall'area 'src' in 'dest'
+// Ritorna il puntatore a 'dest'
+// Questa funzione è simile a quella della libreria standard, ma non usa i registri
+void* memcpy(void* dest, const void* src, unsigned int len) {
+  char* d = dest;           // Cast destination pointer to a char pointer
+  const char* s = src;      // Cast source pointer to a const char pointer
+  while (len--) {           // Loop until 'len' bytes are copied
+    *d++ = *s++;            // Copy each byte from source to destination
+  }
+  return dest;              // Return the destination pointer
+}

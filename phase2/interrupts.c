@@ -92,7 +92,7 @@ void handlePLTInterrupt() {
     // Aggiornamento processo corrente
     if(current_process[cpuid] != NULL) {
         //Salvare il processor state nel PCB (p_s)
-        save_state(&(current_process[cpuid]->p_s));
+      // NON ESISTE  save_state(&(current_process[cpuid]->p_s));
 
         //Calcolo tempo utilizzato
         cpu_t endTime;

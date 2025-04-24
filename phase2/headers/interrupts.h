@@ -1,10 +1,7 @@
-#include "../../headers/types.h"
-
-
 #ifndef INT_H_INCLUDED
 #define INT_H_INCLUDED
-
-
+#include "dipendenze.h"
+#include "../../headers/types.h"
 
 // Dichiarazioni extern per variabili definite in initial.h
 extern pcb_t *current_process[NCPU]; 
