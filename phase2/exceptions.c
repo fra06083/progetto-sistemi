@@ -84,24 +84,16 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
 }
 
 void P(state_t* stato, unsigned int p_id){
-  // Questo servizio richiede al Nucleus di eseguire un'operazione P su un semaforo binario. 
-  // Il servizio P o NSYS3 viene richiesto dal processo chiamante posizionando il valore -3 in a0, 
-  // l'indirizzo fisico del semaforo su cui eseguire l'operazione P è in a1, e poi dobbiamo eseguire la SYSCALL. 
-  // A seconda del valore del semaforo, il controllo viene restituito al Processo Corrente alla CPU corrente, 
-  // oppure questo processo viene bloccato sull'ASL (passa da "running" a "blocked") <= dobbiamo cambiarlo, direi di fare delle if e viene chiamato lo Scheduler.
-    // prendiamo il semaforo ma come controlliamo se è 0 o 1?
     klog_print(" Syscall handler PASSEREN() ");
     int *semaforo = (int *) stato->reg_a1;
     (*semaforo)--;
     if (*semaforo >= 1){
       klog_print(" P() if ");
-      // fa la p e continua il processo
       ACQUIRE_LOCK(&global_lock);
       pcb_t* processo_sbloccato = removeBlocked(semaforo);  // Controlliamo se c'è un processo bloccato
       if (processo_sbloccato != NULL) {
         insertProcQ(&pcbReady, processo_sbloccato); 
       }
-      RELEASE_LOCK(&global_lock);
     } else {
       klog_print(" P() else ");
       // fa la p e lo mette in blocked
@@ -114,11 +106,14 @@ void P(state_t* stato, unsigned int p_id){
       insertBlocked(semaforo, pcbBlocked);
      // process_count--; devo farlo?
       stato->pc_epc += 4; // incrementiamo il program counter
+      // incrementiamo il program counter lo dice nella sezione 6.12, previene il syscall loop
+      // dobbiamo gestire anche il tempo TODO
       pcbBlocked->p_s = *stato; // salviamo lo stato del processo
       pcbBlocked->p_time = 0;
       current_process[p_id] = NULL;
       RELEASE_LOCK(&global_lock);
       scheduler();
+      return;
     }
     RELEASE_LOCK(&global_lock);
     stato->pc_epc += 4; // incrementiamo il program counter
@@ -136,22 +131,20 @@ void V(state_t* stato, unsigned int p_id){
     ACQUIRE_LOCK(&global_lock);
     pcb_t *processo_sbloccato = removeBlocked(semaforo);
     if (processo_sbloccato != NULL){
-      // dobbiamo fare lo scheduler
-      // e mettere il processo in ready
-      processo_sbloccato->p_semAdd = NULL;  //processo così dovrebbe essere sbloccato 
+      // mettiamo il processo in ready
       insertProcQ(&pcbReady, processo_sbloccato);
-  //    process_count++;
     }
   } else if (*semaforo > 1) {
     // LA V in questo caso è bloccante
-
     klog_print(" V() else ");
     ACQUIRE_LOCK(&global_lock);
     pcb_t* pcbBlocked = current_process[p_id];
-    stato->pc_epc += 4; // incrementiamo il program counter
+    stato->pc_epc += 4;
+    // incrementiamo il program counter lo dice nella sezione 6.12, previene il syscall loop
+    // dobbiamo gestire anche il tempo TODO
     pcbBlocked->p_s = *stato;
     insertBlocked(semaforo, pcbBlocked);
-    pcbBlocked->p_time = 0;
+   // pcbBlocked->p_time = 0; || dobbiamo ricaricare il tempo di esec. non è così
     current_process[p_id] = NULL;
     RELEASE_LOCK(&global_lock);
     scheduler();
