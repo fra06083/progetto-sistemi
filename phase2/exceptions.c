@@ -192,11 +192,11 @@ void DoIO(state_t *stato, unsigned int p_id){
   (*sem[devIndex].s_key)--;   // decrementa il semaforo per bloccare il processo fino a quando l'operazione input/output è completata
   stato->pc_epc += 4; 
   pcb_attuale->p_s = *stato;
-  insertBlocked(sem[devIndex].s_key, current);  // inseisci il processo nei bloccati
+  insertBlocked(sem[devIndex].s_key, pcb_attuale);  // inseisci il processo nei bloccati
   current_process[p_id] = NULL;
   cpu_t tempo_fine = 0;
   STCK(tempo_fine);  // save the end time
-  current->p_time += tempo_fine - start_time[p_id];  // update time
+  pcb_attuale->p_time += tempo_fine - start_time[p_id];  // update time
   RELEASE_LOCK(&global_lock);
 
   *indirizzo_comando = value;
