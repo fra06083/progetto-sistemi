@@ -164,7 +164,6 @@ void V(state_t* stato, unsigned int p_id) {
 void DoIO(state_t *stato, unsigned int p_id){
   // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
   // Dobbiamo implementare il codice per gestire questa operazione
-  // Inizialmente lasciamo vuoto
   klog_print("SyscallHandler > DoIO");
   ACQUIRE_LOCK(&global_lock);
   memaddr* indirizzo_comando = (memaddr*)stato->reg_a1;  // prendiamo il comando e il suo valore
@@ -172,14 +171,13 @@ void DoIO(state_t *stato, unsigned int p_id){
 
   if (indirizzo_comando == NULL) {
     RELEASE_LOCK(&global_lock);
-    stato->reg_a0 = -1;  // if the command address is NULL, return -1
-    stato->pc_epc += 4;  // increment the program counter
+    stato->reg_a0 = -1;  // ritorna -1 se nullo
+    stato->pc_epc += 4;  // incrementa il program counter
     LDST(stato);
     return;
   }
 
-  /* Get device semaphore */
-  pcb_t* current = current_process[p_id];       
+  pcb_t* pcb_attuale = current_process[p_id];       
   int devIndex = findDevice(indirizzo_comando - 1);  // get the device index from the command address
 
   if (devIndex < 0) {
@@ -190,15 +188,15 @@ void DoIO(state_t *stato, unsigned int p_id){
     return;
   }
 
-  /* P on device semaphore to block process */
-  (*sem[devIndex].s_key)--;   // decrement the semaphore value to block the process until the i/o operation is completed
-  stato->pc_epc += 4;  // increment the program counter
-  current->p_s = *stato;
-  insertBlocked(sem[devIndex].s_key, current);  // insert the current process in the blocked
+  /* P semplificata in i/o */
+  (*sem[devIndex].s_key)--;   // decrementa il semaforo per bloccare il processo fino a quando l'operazione input/output è completata
+  stato->pc_epc += 4; 
+  pcb_attuale->p_s = *stato;
+  insertBlocked(sem[devIndex].s_key, current);  // inseisci il processo nei bloccati
   current_process[p_id] = NULL;
   cpu_t tempo_fine = 0;
   STCK(tempo_fine);  // save the end time
-  current->p_time += tempo_fine - start_time[p_id];  // update the time of the current process
+  current->p_time += tempo_fine - start_time[p_id];  // update time
   RELEASE_LOCK(&global_lock);
 
   *indirizzo_comando = value;
