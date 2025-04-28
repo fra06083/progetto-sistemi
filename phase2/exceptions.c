@@ -12,8 +12,40 @@ void uTLB_ExceptionHandler(){
 
 
 }
-void programTrapHandler(){
+void programTrapHandler(int cause, state_t* stato){
+  ACQUIRE_LOCK(&global_lock);
+  int cpu_id = getPRID();
+  pcb_t* current = current_process[cpu_id];
 
+  if (current == NULL) {
+    RELEASE_LOCK(&global_lock);
+    scheduler();
+  }
+
+  if (current->p_supportStruct == NULL) {
+    RELEASE_LOCK(&global_lock);
+    killProcess(current);
+    scheduler();
+  }
+
+  // Copia dell'eccezione
+  support_t* sup = current->p_supportStruct;
+  sup->sup_exceptState[cause] = *stato;
+  context_t* ctx = &sup->sup_exceptContext[cause];
+
+  RELEASE_LOCK(&global_lock);
+
+  LDCXT(ctx->stackPtr, ctx->status, ctx->pc);  // Carica il contesto
+/*
+  This function allows a current process to change its operating mode,
+ * turning on/off interrupt masks, turning on user mode, and at the same time
+ * changing the location of execution.
+ * It is available only in kernel mode, thru a BIOS routine
+ * (otherwise it causes a break).
+ * It updates processor status, PC and stack pointer _completely_,
+ * in one atomic operation.
+ * It has no meaningful return value.
+ * */
 }
 void exceptionHandler()
 {
@@ -21,21 +53,15 @@ void exceptionHandler()
     int getExcepCode = getCAUSE() & CAUSE_EXCCODE_MASK;
     // Dobbiamo determinare se viene eseguito in Kernel-mode o User-mode
     // qui mandiamo l'eccezione al gestore delle interruzioni
-    if (CAUSE_IS_INT(getExcepCode))
-    {
-        interruptHandler();
-        return; // Esci dalla funzione dopo aver gestito l'interruzione
-    }
-
-    if (getExcepCode >= 24 && getExcepCode <= 28){
-        /* TLB Exception Handler */
-        uTLB_ExceptionHandler();
-    } else if (getExcepCode >= 8 && getExcepCode <= 11) {
-        /* Nucleus’s SYSCALL exception handler */
-        syscallHandler(stato);
+    // codici eccezioni in cpu.h
+    if (CAUSE_IS_INT(getCAUSE())) {
+      interruptHandler(getExcepCode);  // if the cause is an interrupt, call the interrupt handler
+    } else if (getExcepCode == EXC_ECU || getExcepCode == EXC_ECM) {
+      syscallHandler(stato);
+    } else if (getExcepCode >= EXC_MOD && getExcepCode <= EXC_UTLBS) {
+      programTrapHandler(PGFAULTEXCEPT, stato);
     } else {
-        /* Nucleus’s Program Trap exception handler */
-        programTrapHandler();
+      programTrapHandler(GENERALEXCEPT, stato);
     }
 }
 
@@ -189,10 +215,11 @@ void DoIO(state_t *stato, unsigned int p_id){
   }
 
   /* P semplificata in i/o */
-  (*sem[devIndex].s_key)--;   // decrementa il semaforo per bloccare il processo fino a quando l'operazione input/output è completata
+  int *semPTR = &sem[devIndex];  // get the semaphore for the device
+  sem[devIndex]--;   // decrementa il semaforo per bloccare il processo fino a quando l'operazione input/output è completata
   stato->pc_epc += 4; 
   pcb_attuale->p_s = *stato;
-  insertBlocked(sem[devIndex].s_key, pcb_attuale);  // inseisci il processo nei bloccati
+  insertBlocked(semPTR, pcb_attuale);  // inseisci il processo nei bloccati
   current_process[p_id] = NULL;
   cpu_t tempo_fine = 0;
   STCK(tempo_fine);  // save the end time
@@ -243,14 +270,14 @@ if (registro < 0 && iskernel){
     break;
   case GETPROCESSID:
     break;
-  default: // Se non trova nessuna, program TRAP
-   stato->cause = PRIVINSTR;
-   programTrapHandler();
+  default: 
+    PANIC();
+    break;
    }
 } else {
   klog_print("SyscallHandler > 0");
-  stato->cause = PRIVINSTR; // perché non è possibile usare questi casi in usermode.
-  programTrapHandler();
+  stato->cause = GENERALEXCEPT; // perché non è possibile usare questi casi in usermode.
+  programTrapHandler(GENERALEXCEPT, stato);
 }
 }
 

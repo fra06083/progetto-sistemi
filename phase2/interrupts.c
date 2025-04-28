@@ -2,12 +2,11 @@
 
 
 // Interrupt Handler Principale
-void interruptHandler() {
+void interruptHandler(int excCode) {
 
     ACQUIRE_LOCK(&global_lock);
 
     unsigned int cause = getCAUSE();
-    int excCode = cause & CAUSE_EXCCODE_MASK;
 
     if (excCode == IL_CPUTIMER) {
         handlePLTInterrupt();
@@ -125,7 +124,8 @@ void handleIntervalTimerInterrupt() {
 
     // Sblocco processi pseudo-clock (sem[NSEMAPHORES-1])
     //7.3.2 Unblock all PCBs blocked waiting a Pseudo-clock tick
-    semd_t *clockSem = &sem[NRSEMAPHORES - 1];
+    int *clock = &sem[NRSEMAPHORES - 1];
+    semd_t *clockSem = findSemaphore(clock);
     if(!list_empty(&clockSem->s_procq)) {
         struct list_head *pos;
         list_for_each(pos, &clockSem->s_procq) {
@@ -134,7 +134,6 @@ void handleIntervalTimerInterrupt() {
             list_add_tail(pos, &pcbReady);
         }
     }
-
     RELEASE_LOCK(&global_lock);
 
     // Ripristino esecuzione

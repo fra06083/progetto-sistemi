@@ -4,9 +4,9 @@
 extern int process_count;
 extern struct pcb_t *current_process[NCPU];
 extern struct list_head pcbReady;
-extern unsigned int getPRID();
+extern int sem[SEMDEVLEN];
 extern volatile unsigned int global_lock;
-extern int lock_cpu0;
+extern cpu_t start_time[NCPU];
 // METODI
 void scheduler();
 #endif

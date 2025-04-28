@@ -54,10 +54,22 @@ void* memcpy(void* dest, const void* src, unsigned int len) {
   }
   return dest;              // Return the destination pointer
 }
-int findDevice(memaddr* indirizzo_comando) {
+/* 
+
+Field #    | Address          | Field Name
+-------------------------------------------
+   3       | (base) + 0xc     | DATA1
+   2       | (base) + 0x8     | DATA1
+   1       | (base) + 0x4     | COMMAND
+   0       | (base) + 0x0     | STATUS
+
+Da quanto ho capito in sostanza ogni device (guarda sezione 12, passa da 10 in 10 ed è esattamente quello che fa questa funzione)
+
+*/
+int findDevice(memaddr* indirizzo_comando) { // dobbiamo trovare il dispositivo dal suo indirizzo
   unsigned int offset = (unsigned int) indirizzo_comando - START_DEVREG;
   int i = -1;
-  if (offset >= 32 * 0x10) {
+  if (offset >= (32 * 0x10)) {
     i = 32 + ((offset - (32 * 0x10)) / 0x8);
   } else {
     i = offset / 0x10;  

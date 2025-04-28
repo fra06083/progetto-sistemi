@@ -19,7 +19,6 @@ void configureIRT(int line, int cpu) {
   * indirizzo_IRT |= IRT_RP_BIT_ON; // setta il bit di routing policy 1 << 28 in sostanza mette 1 a rp (|= non cancella la vecchia conf)
   * indirizzo_IRT |= (1 << cpu); // setta il bit di destinazione, 1 << cpu ...001 | ...010 | ...100
 }
-
 void configurePassupVector() {
 passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
 for (int i = 0; i < NCPU; i++) {
@@ -53,9 +52,7 @@ void initializeSystem() {
     start_time[i] = 0; // Inizializziamo il tempo di inizio di ogni processo
   }
   for (int i = 0; i < NRSEMAPHORES; i++) {
-    sem[i] = (struct semd_t) {
-      0
-    };
+    sem[i] = 0;
   }
   LDIT(PSECOND);
 }
