@@ -54,3 +54,13 @@ void* memcpy(void* dest, const void* src, unsigned int len) {
   }
   return dest;              // Return the destination pointer
 }
+int findDevice(memaddr* indirizzo_comando) {
+  unsigned int offset = (unsigned int) indirizzo_comando - START_DEVREG;
+  int i = -1;
+  if (offset >= 32 * 0x10) {
+    i = 32 + ((offset - (32 * 0x10)) / 0x8);
+  } else {
+    i = offset / 0x10;  
+  }
+  return i; 
+}

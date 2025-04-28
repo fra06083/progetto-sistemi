@@ -28,10 +28,10 @@ Current Process field of the current CPU.
     int pid = getPRID();
     pcb_t *pcb = removeProcQ(&pcbReady);
     current_process[pid] = pcb;
-    // Settiamo il timeslice per il processo
-   // LDIT(TIMESLICE);
+    // Settiamo il timeslice per il processo   // LDIT(TIMESLICE);
     setTIMER(TIMESLICE); // Impostiamo il timer per il timeslice
     *((memaddr*)TPR) = 0; // Settiamo il TPR a 0 per abilitare le interruzioni
+    STCK(start_time[pid]);  // settiamo il tempo di inizio del processo
     // Rilasciamo il lock dopo aver completato il dispatch
     RELEASE_LOCK(&global_lock);
     // Carichiamo il contesto del processo

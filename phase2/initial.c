@@ -50,6 +50,7 @@ void initializeSystem() {
   mkEmptyProcQ( & pcbReady);
   for (int i = 0; i < NCPU; i++) {
     current_process[i] = NULL;
+    start_time[i] = 0; // Inizializziamo il tempo di inizio di ogni processo
   }
   for (int i = 0; i < NRSEMAPHORES; i++) {
     sem[i] = (struct semd_t) {

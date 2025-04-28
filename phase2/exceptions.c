@@ -83,76 +83,126 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
   }
 }
 
-void P(state_t* stato, unsigned int p_id){
-    klog_print(" Syscall handler PASSEREN() ");
-    int *semaforo = (int *) stato->reg_a1;
-    (*semaforo)--;
-    if (*semaforo >= 1){
-      klog_print(" P() if ");
-      ACQUIRE_LOCK(&global_lock);
-      pcb_t* processo_sbloccato = removeBlocked(semaforo);  // Controlliamo se c'è un processo bloccato
-      if (processo_sbloccato != NULL) {
-        insertProcQ(&pcbReady, processo_sbloccato); 
-      }
-    } else {
-      klog_print(" P() else ");
-      // fa la p e lo mette in blocked
-      // dobbiamo fare un'operazione di enqueue sul semaforo
-      // e poi facciamo lo scheduler
-      // se il semaforo è 0, allora dobbiamo bloccare il processo corrente
-      // e fare lo scheduler
-      ACQUIRE_LOCK(&global_lock);
+void P(state_t* stato, unsigned int p_id) {
+  klog_print(" Syscall handler PASSEREN() ");
+  ACQUIRE_LOCK(&global_lock); // acquisisci il lock prima di fare la P
+
+  int *semaforo = (int *) stato->reg_a1;
+  (*semaforo)--;  // decrementa il semaforo
+
+  if (*semaforo < 0) {
+      klog_print(" P() - blocco del processo chiamante ");
+      // Blocca il processo corrente
       pcb_t* pcbBlocked = current_process[p_id];
-      insertBlocked(semaforo, pcbBlocked);
-     // process_count--; devo farlo?
-      stato->pc_epc += 4; // incrementiamo il program counter
-      // incrementiamo il program counter lo dice nella sezione 6.12, previene il syscall loop
-      // dobbiamo gestire anche il tempo TODO
-      pcbBlocked->p_s = *stato; // salviamo lo stato del processo
-      pcbBlocked->p_time = 0;
-      current_process[p_id] = NULL;
-      RELEASE_LOCK(&global_lock);
-      scheduler();
-      return;
-    }
-    RELEASE_LOCK(&global_lock);
-    stato->pc_epc += 4; // incrementiamo il program counter
-    LDST(stato);
+      insertBlocked(semaforo, pcbBlocked);  // inserisci il processo nella lista dei bloccati
+
+      stato->pc_epc += 4;  // incrementa il program counter
+      // Salva lo stato del processo
+      cpu_t tempo_fine = 0;
+      STCK(tempo_fine);  // salva il tempo di fine
+      pcbBlocked->p_time += tempo_fine - start_time[p_id];  // aggiorna il tempo di esecuzione del processo
+      pcbBlocked->p_s = *stato;  // salva lo stato del processo
+      current_process[p_id] = NULL;  // rimuovi il processo corrente dalla lista dei processi attivi
+
+      RELEASE_LOCK(&global_lock);  // rilascia il lock
+      scheduler();  // esegui lo scheduler per un altro processo
+      return;  // ritorna e non continuare l'esecuzione del processo corrente
+  } else {
+      klog_print(" P() - continua l'esecuzione ");
+      // Se il semaforo è >= 0, non bloccare e continua
+      if (*semaforo >= 1) {
+          pcb_t* processo_sbloccato = removeBlocked(semaforo);  // sblocca il processo in attesa
+          if (processo_sbloccato != NULL) {
+              insertProcQ(&pcbReady, processo_sbloccato);  // metti il processo nella coda dei ready
+          }
+      }
+  }
+
+  RELEASE_LOCK(&global_lock);  // rilascia il lock
+  stato->pc_epc += 4;  // incrementa il program counter
+  LDST(stato);  // ripristina lo stato del processo
 }
 
-void V(state_t* stato, unsigned int p_id){
-  klog_print("SyscallHandler: VERHOGEN");
-   int *semaforo = (int *) stato->reg_a1;
-   (*semaforo)++;
-  if (*semaforo <= 0){  //   PREV - RIGA 
- // if(!emptyProcQ(&semaforo->s_procq)){
-    klog_print(" V() if ");
-    // fa la p e continua il processo
-    ACQUIRE_LOCK(&global_lock);
-    pcb_t *processo_sbloccato = removeBlocked(semaforo);
-    if (processo_sbloccato != NULL){
-      // mettiamo il processo in ready
-      insertProcQ(&pcbReady, processo_sbloccato);
-    }
+void V(state_t* stato, unsigned int p_id) {
+  klog_print(" Syscall handler VERHOGEN() ");
+  ACQUIRE_LOCK(&global_lock);  // acquisisci il lock prima di fare la V
+
+  int *semaforo = (int *) stato->reg_a1;
+  (*semaforo)++;  // incrementa il semaforo
+
+  if (*semaforo <= 0) {
+      klog_print(" V() - sblocca un processo ");
+      // Sblocca il processo in attesa
+      pcb_t* processo_sbloccato = removeBlocked(semaforo);
+      if (processo_sbloccato != NULL) {
+          insertProcQ(&pcbReady, processo_sbloccato);  // metti il processo nella coda dei ready
+      }
   } else if (*semaforo > 1) {
-    // LA V in questo caso è bloccante
-    klog_print(" V() else ");
-    ACQUIRE_LOCK(&global_lock);
-    pcb_t* pcbBlocked = current_process[p_id];
-    stato->pc_epc += 4;
-    // incrementiamo il program counter lo dice nella sezione 6.12, previene il syscall loop
-    // dobbiamo gestire anche il tempo TODO
-    pcbBlocked->p_s = *stato;
-    insertBlocked(semaforo, pcbBlocked);
-   // pcbBlocked->p_time = 0; || dobbiamo ricaricare il tempo di esec. non è così
-    current_process[p_id] = NULL;
+      klog_print(" V() - blocca il processo chiamante ");
+      // Se il semaforo è maggiore di 1, blocca il processo chiamante (V bloccante)
+      pcb_t* pcbBlocked = current_process[p_id];
+      stato->pc_epc += 4;  // incrementa il program counter
+      // Salva lo stato del processo
+      cpu_t tempo_fine = 0;
+      STCK(tempo_fine);  // salva il tempo di fine
+      pcbBlocked->p_time += tempo_fine - start_time[p_id];  // aggiorna il tempo di esecuzione del processo
+      pcbBlocked->p_s = *stato;  // salva lo stato del processo
+      insertBlocked(semaforo, pcbBlocked);  // metti il processo nella lista dei bloccati
+
+      current_process[p_id] = NULL;  // rimuovi il processo corrente dalla lista dei processi attivi
+
+      RELEASE_LOCK(&global_lock);  // rilascia il lock
+      scheduler();  // esegui lo scheduler per un altro processo
+      return;  // ritorna e non continuare l'esecuzione del processo corrente
+  }
+
+  RELEASE_LOCK(&global_lock);  // rilascia il lock
+  stato->pc_epc += 4;  // incrementa il program counter
+  LDST(stato);  // ripristina lo stato del processo
+}
+
+void DoIO(state_t *stato, unsigned int p_id){
+  // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
+  // Dobbiamo implementare il codice per gestire questa operazione
+  // Inizialmente lasciamo vuoto
+  klog_print("SyscallHandler > DoIO");
+  ACQUIRE_LOCK(&global_lock);
+  memaddr* indirizzo_comando = (memaddr*)stato->reg_a1;  // prendiamo il comando e il suo valore
+  int value = stato->reg_a2;                
+
+  if (indirizzo_comando == NULL) {
     RELEASE_LOCK(&global_lock);
-    scheduler();
+    stato->reg_a0 = -1;  // if the command address is NULL, return -1
+    stato->pc_epc += 4;  // increment the program counter
+    LDST(stato);
     return;
   }
+
+  /* Get device semaphore */
+  pcb_t* current = current_process[p_id];       
+  int devIndex = findDevice(indirizzo_comando - 1);  // get the device index from the command address
+
+  if (devIndex < 0) {
+    RELEASE_LOCK(&global_lock);
+    stato->reg_a0 = -1;  // if the device index is not valid, return -1
+    stato->pc_epc += 4;  // increment the program counter
+    LDST(stato);
+    return;
+  }
+
+  /* P on device semaphore to block process */
+  (*sem[devIndex].s_key)--;   // decrement the semaphore value to block the process until the i/o operation is completed
+  stato->pc_epc += 4;  // increment the program counter
+  current->p_s = *stato;
+  insertBlocked(sem[devIndex].s_key, current);  // insert the current process in the blocked
+  current_process[p_id] = NULL;
+  cpu_t tempo_fine = 0;
+  STCK(tempo_fine);  // save the end time
+  current->p_time += tempo_fine - start_time[p_id];  // update the time of the current process
   RELEASE_LOCK(&global_lock);
-  stato->pc_epc += 4; // incrementiamo il program counter
-  LDST(stato); //  PREV - RIGA Qui facciamo ripartire il processo
+
+  *indirizzo_comando = value;
+  scheduler();
 }
 
 void syscallHandler(state_t *stato){
@@ -185,7 +235,7 @@ if (registro < 0 && iskernel){
     break;
    case DOIO:
     // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
-    
+    DoIO(stato, p_id);
     break;
    case GETTIME:
     break;
