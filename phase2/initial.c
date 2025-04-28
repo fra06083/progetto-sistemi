@@ -13,7 +13,6 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 */
 #include "./headers/initial.h"
  //DEFINIZIONE DELLE VARIABILI GLOBALI
-// int lock_0;
 // FUNZIONI DI CONFIGURAZIONE
 void configureIRT(int line, int cpu) {
   volatile memaddr * indirizzo_IRT = (volatile memaddr * )(IRT_START + (line * WS));
@@ -22,20 +21,23 @@ void configureIRT(int line, int cpu) {
 }
 
 void configurePassupVector() {
- for (int i = 0; i < NCPU; i++) {
-  passupvector_t v;
-  v.exception_handler = (memaddr) exceptionHandler;
-  v.tlb_refill_handler = (memaddr) uTLB_RefillHandler;
+passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
+for (int i = 0; i < NCPU; i++) {
+  passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
   if (i == 0) {
-    v.tlb_refill_stackPtr = KERNELSTACK;
-    v.exception_stackPtr  = KERNELSTACK;
- } else { 
-    v.tlb_refill_stackPtr = RAMSTART + (64 * PAGESIZE) + (i * PAGESIZE);
-    v.exception_stackPtr  = BASE_STACK0 + (i * PAGESIZE);
+    passupvector->tlb_refill_stackPtr = KERNELSTACK;
+  } else {
+    passupvector->tlb_refill_stackPtr = RAMSTART + (64 * PAGESIZE) + (i * PAGESIZE);
   }
-  // Scrive direttamente nella memoria mappata
- *((passupvector_t *)(PASSUPVECTOR + i * 0x10)) = v;
+  passupvector->exception_handler = (memaddr)exceptionHandler;
+  if (i == 0) {
+    passupvector->exception_stackPtr = KERNELSTACK;
+  } else {
+    passupvector->exception_stackPtr = 0x20020000 + (i * PAGESIZE);
+  }
+  passupvector++; // qui avevamo sbagliato, dovevamo semplicemente incrementare il puntatore
 }
+
 }
 
 
@@ -59,13 +61,14 @@ void initializeSystem() {
 
 // FUNZIONE CHE CREA IL PRIMO PROCESSO
 void createFirstProcess() {
-  pcb_t * first_process = allocPcb();
-  (first_process -> p_s).mie = MIE_ALL;
-  (first_process -> p_s).status = MSTATUS_MIE_MASK | MSTATUS_MPP_M;
-  //  stato->reg_sp = RAMTOP(stato->reg_sp);
-  (first_process -> p_s).pc_epc = (memaddr) test;
-  RAMTOP(first_process->p_s.reg_sp);
-  insertProcQ( & pcbReady, first_process);
+  pcb_t *primo_processo = allocPcb();
+  RAMTOP(primo_processo->p_s.reg_sp);  // Set SP to last RAM frame
+
+  // Enable interrupts and kernel mode
+  primo_processo->p_s.mie = MIE_ALL;
+  primo_processo->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M;
+  primo_processo->p_s.pc_epc = (memaddr)test;
+  insertProcQ(&pcbReady, primo_processo);
   process_count++;
 }
 
@@ -78,17 +81,13 @@ void configureCPUs() {
   state_t stato;
   stato.status = MSTATUS_MPP_M;
   stato.pc_epc = (memaddr) scheduler;
-  for (int j = 0; j < STATE_GPR_LEN; j++) {
-    stato.gpr[j] = 0;
-  }
   stato.entry_hi = 0;
   stato.cause = 0;
   stato.mie = 0;
-  ACQUIRE_LOCK(&global_lock);
-  lock_cpu0 = 1; // prendo il lock così sbloccando le cpu nello scheduler si bloccano al primo if. Sennò prenderebbero il programma test
-  for (int i = 1; i < NCPU; i++) {
+
+   for (int i = 1; i < NCPU; i++) {
     stato.reg_sp = (0x20020000 + (i * PAGESIZE));
-    INITCPU(i, & stato);
+    INITCPU(i, &stato);
   }
   klog_print("CPU settate!\n");
 }
@@ -99,13 +98,12 @@ int main() {
   // Inizializzazione del sistema
   //punto 2.4
   initializeSystem();
-
+  global_lock = 0; // inizializziamo il lock globale a 1
   // Creazione del primo processo
   createFirstProcess();
   configureCPUs();
   // Avvio dello scheduler
   // punto 2.9
-  klog_print("Avvio dello scheduler:\n");
   scheduler();
 
   return 0; // Non dovrebbe mai essere raggiunto

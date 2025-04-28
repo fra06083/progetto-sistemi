@@ -6,7 +6,7 @@
 // Dichiarazioni extern per variabili definite in initial.h
 extern pcb_t *current_process[NCPU]; 
 extern struct list_head pcbReady;
-extern volatile unsigned int global_Lock;
+extern volatile unsigned int global_lock;
 extern semd_t sem[];
 // Prototipi funzioni
 void interruptHandler();
