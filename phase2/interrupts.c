@@ -97,8 +97,9 @@ void handlePLTInterrupt() {
         cpu_t endTime;
         STCK(endTime);
 
-        //Aggiornamento del tempo del processo con il tempo utilizzato (inseriamo direttamente il valore in p_time)
-        current_process[cpuid]->p_time += (endTime); 
+        //Aggiornamento del tempo del processo con il tempo utilizzato
+        cpu_t elapsed = endTime - start_time[cpuid];
+        current_process[cpuid]->p_time += elapsed; 
 
         // Reinserimento in ready queue
         //Inserire nella Ready Queue:
