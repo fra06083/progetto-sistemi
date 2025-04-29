@@ -8,6 +8,7 @@ extern pcb_t *current_process[NCPU];
 extern struct list_head pcbReady;
 extern volatile unsigned int global_lock;
 extern int sem[SEMDEVLEN];
+extern cpu_t start_time[NCPU];
 // Prototipi funzioni
 void interruptHandler();
 void handleDeviceInterrupt(int intLineNo, int devNo);
