@@ -4,8 +4,6 @@
 // Interrupt Handler Principale
 void interruptHandler(int excCode) {
 
-    ACQUIRE_LOCK(&global_lock);
-
     unsigned int cause = getCAUSE();
 
     if (excCode == IL_CPUTIMER) {
@@ -22,14 +20,12 @@ void interruptHandler(int excCode) {
                 for(int devNo = 0; devNo < 8; devNo++) {
                     if(bitmap & (1 << devNo)) {
                         handleDeviceInterrupt(intLine, devNo);
-                        RELEASE_LOCK(&global_lock);
                         return;
                     }
                 }
             }
         }
     }
-    RELEASE_LOCK(&global_lock);
 }
 
 
