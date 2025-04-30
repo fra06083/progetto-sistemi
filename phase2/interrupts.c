@@ -1,10 +1,37 @@
 #include "headers/interrupts.h"
+#define BITMAP(IntlineNo) (*(memaddr *)(CDEV_BITMAP_BASE + ((IntlineNo) - 3) * WS))
 
+int getDevNo(int IntlineNo)
+{
+    memaddr bit_map = BITMAP(IntlineNo);
 
+    if      (bit_map & DEV0ON) return 0;
+    else if (bit_map & DEV1ON) return 1;
+    else if (bit_map & DEV2ON) return 2;
+    else if (bit_map & DEV3ON) return 3;
+    else if (bit_map & DEV4ON) return 4;
+    else if (bit_map & DEV5ON) return 5;
+    else if (bit_map & DEV6ON) return 6;
+    else if (bit_map & DEV7ON) return 7;
+    else                      return -1; // Nessun dispositivo trovato
+}
+int getIntLineNo(int devNo)
+{
+    switch (devNo) {
+        case 0: return DEV0ON;
+        case 1: return DEV1ON;
+        case 2: return DEV2ON;
+        case 3: return DEV3ON;
+        case 4: return DEV4ON;
+        case 5: return DEV5ON;
+        case 6: return DEV6ON;
+        case 7: return DEV7ON;
+        default: return -1; // DevNo non valido
+    }
+}
 // Interrupt Handler Principale
 void interruptHandler(int excCode) {
 
-    unsigned int cause = getCAUSE();
 
     if (excCode == IL_CPUTIMER) {
         handlePLTInterrupt();
