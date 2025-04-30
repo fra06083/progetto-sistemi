@@ -58,22 +58,21 @@ void handleDeviceInterrupt(int intLine, int devNo) {
     memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (devNo * 0x10);
     ACQUIRE_LOCK(&global_lock);
     // MANCAVA STA PARTE
-    if (intLine == 7) {
-        /* Terminal Interrupt */
+    if (intLine == 7) { // gestione terminale
         termreg_t *termReg = (termreg_t *)devAddr;
         unsigned int trans_stat = termReg->transm_status & 0xFF;
         if (2 <= trans_stat && trans_stat <= OKCHARTRANS) { 
           status = termReg->transm_status;
           termReg->transm_command = ACK;
-          devAddr += 0x8;
-        } else {  // Int is recv
+          devAddr += 0x8; // Abbiamo visto il calcolo dall'ultima tabella.
+        } else {  
           status = termReg->recv_status;
           termReg->recv_command = ACK;
         }
       } else {
-        /* Generic device Interrupt */
+        // device generico, se non è un terminale
         dtpreg_t *devReg = (dtpreg_t *)devAddr;
-        status = devReg->status;  // punto 2
+        status = devReg->status;  // punto 7.2, ci salviamo lo stato del dispositivo
         devReg->command = ACK;
       }
     
