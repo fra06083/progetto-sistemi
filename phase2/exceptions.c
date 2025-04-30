@@ -55,7 +55,7 @@ void exceptionHandler()
     // qui mandiamo l'eccezione al gestore delle interruzioni
     // codici eccezioni in cpu.h
     if (CAUSE_IS_INT(getCAUSE())) {
-      interruptHandler(getExcepCode);  // if the cause is an interrupt, call the interrupt handler
+      interruptHandler(getExcepCode, stato);  // if the cause is an interrupt, call the interrupt handler
     } else if (getExcepCode == EXC_ECU || getExcepCode == EXC_ECM) {
       syscallHandler(stato);
     } else if (getExcepCode >= EXC_MOD && getExcepCode <= EXC_UTLBS) {
