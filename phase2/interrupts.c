@@ -13,19 +13,26 @@ int getDevNo(int IntlineNo)
     else if (bit_map & DEV7ON) return 7;
     else                      return -1; // Nessun dispositivo trovato
 }
-int getIntLineNo(int devNo)
+int getIntLineNo(int intCode)
 {
-    switch (devNo) {
-        case 0: return DEV0ON;
-        case 1: return DEV1ON;
-        case 2: return DEV2ON;
-        case 3: return DEV3ON;
-        case 4: return DEV4ON;
-        case 5: return DEV5ON;
-        case 6: return DEV6ON;
-        case 7: return DEV7ON;
-        default: return -1; // DevNo non valido
-    }
+  switch (intCode) {
+    case IL_CPUTIMER:
+      return 1;
+    case IL_TIMER:
+      return 2;
+    case IL_DISK:
+      return 3;
+    case IL_FLASH:
+      return 4;
+    case IL_ETHERNET:
+      return 5;
+    case IL_PRINTER:
+      return 6;
+    case IL_TERMINAL:
+      return 7;
+    default:
+      return -1;
+  }
 }
 // Interrupt Handler Principale
 void interruptHandler(int intCode, state_t *stato) {
@@ -39,7 +46,7 @@ void interruptHandler(int intCode, state_t *stato) {
         handleIntervalTimerInterrupt();
         break;
       case 3 ... 7:
-        handleDeviceInterrupt(intlineNo, getDevNo(intCode));
+        handleDeviceInterrupt(intlineNo, getDevNo(intlineNo));
         break;
       default:
         break;
@@ -54,7 +61,6 @@ void handleDeviceInterrupt(int intLine, int devNo) {
     unsigned int status;
     // Calcolo indirizzo dispositivo
     //7.1.1 Calculate the address for this device’s device register [Section 12]
-    //coniglia di utilizzare uno switch per gestire i devNo, ma noi lo riceviamo già passato
     memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (devNo * 0x10);
     ACQUIRE_LOCK(&global_lock);
     // MANCAVA STA PARTE
@@ -73,15 +79,13 @@ void handleDeviceInterrupt(int intLine, int devNo) {
         // device generico, se non è un terminale
         dtpreg_t *devReg = (dtpreg_t *)devAddr;
         status = devReg->status;  // punto 7.2, ci salviamo lo stato del dispositivo
-        devReg->command = ACK;
+        devReg->command = ACK; //7.1.3 Acknowledge l'interrupt (scrivere ACK nel command register):
       }
     
-    //7.1.3 Acknowledge l'interrupt (scrivere ACK nel command register):
-    *((unsigned int*)(devAddr + 0x4)) = ACK;
-
     // Gestione semaforo
     //7.1.4 V operation su semaforo associato al device
-    int *semaforoV = &sem[devNo];  // get the semaphore of the device
+    int device = findDevice((memaddr *)devAddr); // trova il dispositivo
+    int *semaforoV = &sem[device];  // get the semaphore of the device
     (*semaforoV)++;
     pcb_t *bloccato = removeBlocked(semaforoV); // rimuove il processo bloccato dal semaforo
     if (bloccato != NULL) {

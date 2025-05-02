@@ -65,17 +65,26 @@ void exceptionHandler()
 void createProcess(state_t *c_state){
   ACQUIRE_LOCK(&global_lock);
   pcb_t *new_process = allocPcb();
+  klog_print("Syscall handler CREATEPROCESS()\n");
   if (new_process == NULL) {
     c_state->reg_a0 = -1; // restituisco -1 nel registro a0 se non posso creare un processo
+    c_state->reg_a0 = -1;  // return -1 to signal the error
+    c_state->pc_epc += 4;
+    LDST(c_state);
     RELEASE_LOCK(&global_lock);
+    return; // non possiamo creare un processo, quindi esce fuori dalla funzione
   }
+  state_t *p_s = (state_t *)c_state->reg_a1;
   // sbagliato new_process->p_s = c_state->reg_a1;
+  new_process->p_s = *p_s;
   new_process->p_supportStruct = (support_t *) c_state->reg_a3;
-  insertProcQ(&current_process[getPRID()]->p_list, new_process);
-  insertChild(current_process[getPRID()], new_process);
+  if (current_process[getPRID()] != NULL) {
+    klog_print("Syscall handler CREATEPROCESS() - processo padre\n");
+    insertChild(current_process[getPRID()], new_process);
+  }
+  klog_print("Syscall handler CREATEPROCESS() - processo aggiunto in coda\n");
+  insertProcQ(&pcbReady, new_process); // va aggiunto alla ready queue!!
   process_count++;
-  new_process->p_time = 0;
-  new_process->p_semAdd = NULL;
   c_state->reg_a0 = new_process->p_pid;
   RELEASE_LOCK(&global_lock);
   c_state->pc_epc += 4; // lo dice nel punto dopo

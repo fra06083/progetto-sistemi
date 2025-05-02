@@ -13,7 +13,7 @@ extern volatile unsigned int global_lock;
 extern int sem[SEMDEVLEN];
 // Prototipi funzioni
 int getDevNo(int IntlineNo);
-int getIntLineNo(int devNo);
+int getIntLineNo(int intCode);
 void interruptHandler(int intCode, state_t *stato);
 void handleDeviceInterrupt(int intLineNo, int devNo);
 void handlePLTInterrupt();

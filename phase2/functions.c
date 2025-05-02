@@ -39,8 +39,11 @@ pcb_t *findProcess(int pid, int remove) {
     if (processo->p_pid == pid) return processo;
  }
     // sennò cerchiamo nella blocked queue
-  pcb_t *bloccato = findBlockedPid(pid, 1);
-    return NULL; // non trovato
+  pcb_t *bloccato = findBlockedPid(pid, remove);
+  if (bloccato != NULL) {
+    return bloccato; // trovato
+  }
+  return NULL; // non trovato
 }
 // implementazione della funzione memcpy che sennò dà problemi e dobbiamo impazzire
 // Copia 'len' byte dall'area 'src' in 'dest'
