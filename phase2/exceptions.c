@@ -68,7 +68,6 @@ void createProcess(state_t *c_state){
   klog_print("Syscall handler CREATEPROCESS()\n");
   if (new_process == NULL) {
     c_state->reg_a0 = -1; // restituisco -1 nel registro a0 se non posso creare un processo
-    c_state->reg_a0 = -1;  // return -1 to signal the error
     c_state->pc_epc += 4;
     LDST(c_state);
     RELEASE_LOCK(&global_lock);
@@ -238,13 +237,12 @@ void DoIO(state_t *stato, unsigned int p_id){
 void GetCPUTime(state_t *stato, unsigned int p_id){    
   //Prendo dal campo p_time l' accumulated processor time usato dal processo che ha fatto questa syscall + il tempo già presente in p_time
   ACQUIRE_LOCK(&global_lock);  
-  //Resetto i valori che ho memorizzato
-  cpu_t reset_time = 0; 
-  STCK(reset_time);
-  current_process[p_id]->p_time += reset_time - start_time[p_id];
-  current_process[p_id]->p_time = reset_time; //resetto il tempo di esecuzione del processo corrente
+  cpu_t tod_time = 0; 
+  STCK(tod_time);
+  current_process[p_id]->p_time = tod_time - start_time[p_id];
   //Devo metterlo nel registro a0 
   stato->reg_a0 = current_process[p_id]->p_time;   // metto il tempo di esecuzione del processo corrente nel registro a0
+  current_process[p_id]->p_time = (cpu_t) 0; //resetto il tempo di esecuzione del processo corrente
   stato->pc_epc += 4; // evito che vada in loop
   RELEASE_LOCK(&global_lock);
   LDST(stato);
