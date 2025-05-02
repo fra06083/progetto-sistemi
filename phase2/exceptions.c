@@ -29,13 +29,10 @@ void programTrapHandler(int cause, state_t* stato){
   }
 
   // Copia dell'eccezione
-  support_t* sup = current->p_supportStruct;
-  sup->sup_exceptState[cause] = *stato;
-  context_t* ctx = &sup->sup_exceptContext[cause];
-
+  current->p_supportStruct->sup_exceptState[cause] = *stato;
+  context_t* context = &caller->p_supportStruct->sup_exceptContext[cause];
+  LDCXT(context->stackPtr, context->status, context->pc);
   RELEASE_LOCK(&global_lock);
-
-  LDCXT(ctx->stackPtr, ctx->status, ctx->pc);  // Carica il contesto
 /*
   This function allows a current process to change its operating mode,
  * turning on/off interrupt masks, turning on user mode, and at the same time
@@ -233,15 +230,15 @@ void DoIO(state_t *stato, unsigned int p_id){
 
 void GetCPUTime(state_t *stato, unsigned int p_id){    
   //Prendo dal campo p_time l' accumulated processor time usato dal processo che ha fatto questa syscall + il tempo già presente in p_time
-  ACQUIRE_LOCK(&global_lock);
-  current_process[p_id]->p_time += start_time[p_id];  
+  ACQUIRE_LOCK(&global_lock);  
   //Resetto i valori che ho memorizzato
   cpu_t reset_time = 0; 
   STCK(reset_time);
-  start_time[p_id] = 0; 
+  current_process[p_id]->p_time += reset_time - start_time[p_id];
+  current_process[getPRID()] = reset_time; //resetto il tempo di esecuzione del processo corrente
   //Devo metterlo nel registro a0 
-  stato->reg_a0 = current_process[p_id]->p_time;   //RIvedere se è stata fatta correttamente la distinzione tra i tempi 
-  stato->pc_epc += 4; 
+  stato->reg_a0 = current_process[p_id]->p_time;   // metto il tempo di esecuzione del processo corrente nel registro a0
+  stato->pc_epc += 4; // evito che vada in loop
   RELEASE_LOCK(&global_lock);
   LDST(stato);
 }
