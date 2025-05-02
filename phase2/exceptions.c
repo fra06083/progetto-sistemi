@@ -192,7 +192,7 @@ void DoIO(state_t *stato, unsigned int p_id){
   // Dobbiamo implementare il codice per gestire questa operazione
   klog_print("SyscallHandler > DoIO");
   ACQUIRE_LOCK(&global_lock);
-  memaddr* indirizzo_comando = (memaddr*)stato->reg_a1;  // prendiamo il comando e il suo valore
+  memaddr* indirizzo_comando = (memaddr*) stato->reg_a1;  // prendiamo il comando e il suo valore
   int value = stato->reg_a2;                
 
   if (indirizzo_comando == NULL) {
@@ -205,7 +205,7 @@ void DoIO(state_t *stato, unsigned int p_id){
 
   pcb_t* pcb_attuale = current_process[p_id];       
   int devIndex = findDevice(indirizzo_comando - 1);  // get the device index from the command address
-
+  
   if (devIndex < 0) {
     RELEASE_LOCK(&global_lock);
     stato->reg_a0 = -1;  // if the device index is not valid, return -1
@@ -213,7 +213,6 @@ void DoIO(state_t *stato, unsigned int p_id){
     LDST(stato);
     return;
   }
-
   /* P semplificata in i/o */
   int *semPTR = &sem[devIndex];  // get the semaphore for the device
   sem[devIndex]--;   // decrementa il semaforo per bloccare il processo fino a quando l'operazione input/output è completata
@@ -225,9 +224,26 @@ void DoIO(state_t *stato, unsigned int p_id){
   STCK(tempo_fine);  // save the end time
   pcb_attuale->p_time += tempo_fine - start_time[p_id];  // update time
   RELEASE_LOCK(&global_lock);
-
   *indirizzo_comando = value;
+  klog_print(" DOIO pre scheduler ");
   scheduler();
+  klog_print(" DOIO post scheduling ");
+ 
+}
+
+void GetCPUTime(state_t *stato, unsigned int p_id){    
+  //Prendo dal campo p_time l' accumulated processor time usato dal processo che ha fatto questa syscall + il tempo già presente in p_time
+  ACQUIRE_LOCK(&global_lock);
+  current_process[p_id]->p_time += start_time[p_id];  
+  //Resetto i valori che ho memorizzato
+  cpu_t reset_time = 0; 
+  STCK(reset_time);
+  start_time[p_id] = 0; 
+  //Devo metterlo nel registro a0 
+  stato->reg_a0 = current_process[p_id]->p_time;   //RIvedere se è stata fatta correttamente la distinzione tra i tempi 
+  stato->pc_epc += 4; 
+  RELEASE_LOCK(&global_lock);
+  LDST(stato);
 }
 
 void syscallHandler(state_t *stato){
@@ -263,6 +279,7 @@ if (registro < 0 && iskernel){
     DoIO(stato, p_id);
     break;
    case GETTIME:
+    GetCPUTime(stato, p_id);
     break;
    case CLOCKWAIT:
     break;

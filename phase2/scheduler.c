@@ -2,7 +2,7 @@
 
 
 void scheduler() {
-
+    
   /* Remove the PCB from the head of the Ready Queue and store the pointer to the PCB in the
 Current Process field of the current CPU.
 */
