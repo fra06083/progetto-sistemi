@@ -67,7 +67,7 @@ Da quanto ho capito in sostanza ogni device (guarda sezione 12, passa da 10 in 1
 
 */
 int findDevice(memaddr* indirizzo_comando) { // dobbiamo trovare il dispositivo dal suo indirizzo
-  unsigned int offset = (unsigned int) indirizzo_comando - START_DEVREG;
+  unsigned int offset = (unsigned int) indirizzo_comando - START_DEVREG; // calcoliamo l'offset
   int i = -1;
   if (offset >= (32 * 0x10)) {
     i = 32 + ((offset - (32 * 0x10)) / 0x8);

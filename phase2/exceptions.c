@@ -30,7 +30,7 @@ void programTrapHandler(int cause, state_t* stato){
 
   // Copia dell'eccezione
   current->p_supportStruct->sup_exceptState[cause] = *stato;
-  context_t* context = &caller->p_supportStruct->sup_exceptContext[cause];
+  context_t* context = &current->p_supportStruct->sup_exceptContext[cause];
   LDCXT(context->stackPtr, context->status, context->pc);
   RELEASE_LOCK(&global_lock);
 /*
@@ -183,7 +183,6 @@ void V(state_t* stato, unsigned int p_id) {
   stato->pc_epc += 4;  // incrementa il program counter
   LDST(stato);  // ripristina lo stato del processo
 }
-
 void DoIO(state_t *stato, unsigned int p_id){
   // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
   // Dobbiamo implementare il codice per gestire questa operazione
@@ -201,33 +200,32 @@ void DoIO(state_t *stato, unsigned int p_id){
   }
 
   pcb_t* pcb_attuale = current_process[p_id];       
-  int devIndex = findDevice(indirizzo_comando - 1);  // get the device index from the command address
+  int devIndex = findDevice(indirizzo_comando - 1);  // troviamo il dispositivo
   
   if (devIndex < 0) {
     RELEASE_LOCK(&global_lock);
-    stato->reg_a0 = -1;  // if the device index is not valid, return -1
-    stato->pc_epc += 4;  // increment the program counter
+    stato->reg_a0 = -1;  // dispositivo non valido, -1 in reg a0
+    stato->pc_epc += 4;  // antiloop
     LDST(stato);
     return;
   }
   /* P semplificata in i/o */
-  int *semPTR = &sem[devIndex];  // get the semaphore for the device
-  sem[devIndex]--;   // decrementa il semaforo per bloccare il processo fino a quando l'operazione input/output è completata
+  int* semPTR = &sem[devIndex];  // prendi il semaforo del dispositivo
+  (*semPTR)--;   // decrementa il semaforo per bloccare il processo fino a quando l'operazione input/output è completata
   stato->pc_epc += 4; 
   pcb_attuale->p_s = *stato;
   insertBlocked(semPTR, pcb_attuale);  // inseisci il processo nei bloccati
   current_process[p_id] = NULL;
+
   cpu_t tempo_fine = 0;
-  STCK(tempo_fine);  // save the end time
-  pcb_attuale->p_time += tempo_fine - start_time[p_id];  // update time
+  STCK(tempo_fine);  // salva il tempo di fine esec.
+  pcb_attuale->p_time += tempo_fine - start_time[p_id];  // update tempo di esecuzione
   RELEASE_LOCK(&global_lock);
-  *indirizzo_comando = value;
-  klog_print(" DOIO pre scheduler ");
+
+  *indirizzo_comando = value;  // scrivi il valore nel dispositivo
   scheduler();
-  klog_print(" DOIO post scheduling ");
  
 }
-
 void GetCPUTime(state_t *stato, unsigned int p_id){    
   //Prendo dal campo p_time l' accumulated processor time usato dal processo che ha fatto questa syscall + il tempo già presente in p_time
   ACQUIRE_LOCK(&global_lock);  
@@ -235,7 +233,7 @@ void GetCPUTime(state_t *stato, unsigned int p_id){
   cpu_t reset_time = 0; 
   STCK(reset_time);
   current_process[p_id]->p_time += reset_time - start_time[p_id];
-  current_process[getPRID()] = reset_time; //resetto il tempo di esecuzione del processo corrente
+  current_process[p_id]->p_time = reset_time; //resetto il tempo di esecuzione del processo corrente
   //Devo metterlo nel registro a0 
   stato->reg_a0 = current_process[p_id]->p_time;   // metto il tempo di esecuzione del processo corrente nel registro a0
   stato->pc_epc += 4; // evito che vada in loop
