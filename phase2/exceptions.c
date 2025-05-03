@@ -134,7 +134,6 @@ void P(state_t* stato, unsigned int p_id) {
       pcbBlocked->p_time += tempo_fine - start_time[p_id];  // aggiorna il tempo di esecuzione del processo
       pcbBlocked->p_s = *stato;  // salva lo stato del processo
       current_process[p_id] = NULL;  // rimuovi il processo corrente dalla lista dei processi attivi
-
       RELEASE_LOCK(&global_lock);  // rilascia il lock
       scheduler();  // esegui lo scheduler per un altro processo
       return;  // ritorna e non continuare l'esecuzione del processo corrente
@@ -223,8 +222,7 @@ void DoIO(state_t *stato, unsigned int p_id){
   stato->pc_epc += 4; 
   pcb_attuale->p_s = *stato;
   insertBlocked(semPTR, pcb_attuale);  // inseisci il processo nei bloccati
-  current_process[p_id] = NULL;
-
+  current_process[p_id] = NULL;         //  rimuovi il processo corrente dalla lista dei processi attivi
   cpu_t tempo_fine = 0;
   STCK(tempo_fine);  // salva il tempo di fine esec.
   pcb_attuale->p_time += tempo_fine - start_time[p_id];  // update tempo di esecuzione
@@ -239,13 +237,59 @@ void GetCPUTime(state_t *stato, unsigned int p_id){
   ACQUIRE_LOCK(&global_lock);  
   cpu_t tod_time = 0; 
   STCK(tod_time);
-  current_process[p_id]->p_time = tod_time - start_time[p_id];
+  current_process[p_id]->p_time += tod_time - start_time[p_id];
   //Devo metterlo nel registro a0 
-  stato->reg_a0 = current_process[p_id]->p_time;   // metto il tempo di esecuzione del processo corrente nel registro a0
-  current_process[p_id]->p_time = (cpu_t) 0; //resetto il tempo di esecuzione del processo corrente
+  stato->reg_a0 = current_process[p_id]->p_time;    // metto il tempo di esecuzione del processo corrente nel registro a0
+  current_process[p_id]->p_time = (cpu_t) 0;     //resetto il tempo di esecuzione del processo corrente
   stato->pc_epc += 4; // evito che vada in loop
   RELEASE_LOCK(&global_lock);
   LDST(stato);
+}
+
+void WaitForClock(state_t *stato, unsigned int p_id){ 
+  ACQUIRE_LOCK(&global_lock);
+  int *semaforo = &sem[PSEUDOSEM] ;    //indirizzo del semaforo dello PseudoClock
+  pcb_t* pcbBlocked = current_process[p_id];
+  // Blocca il processo corrente, faccio un P su questo semaforo 
+  insertBlocked(semaforo, pcbBlocked);  // inserisci il processo nella lista dei bloccati (ASL), verrano sbloccati dall'interrupt 
+  current_process[p_id] = NULL;  //E rimuovi dalla CPU su cui era in esecuzione 
+  pcbBlocked->p_s = *stato;    //da fare perchè questa syscall è bloccante 
+  cpu_t tod_time = 0; 
+  STCK(tod_time);
+  current_process[p_id]->p_time += tod_time - start_time[p_id]; //Le syscall bloccanti devono aggiornare il p_time 
+  RELEASE_LOCK(&global_lock);
+  //Sez 9 credo - gli orologi vanno tutti assieme, quindi bisogna aggiornare il p_time
+  //Infine, si chiama lo scheduler
+  scheduler();
+}
+
+void GetSupportData(state_t *stato, unsigned int p_id){
+  ACQUIRE_LOCK(&global_lock);
+  //Restituisco in a0 il puntatore (se diverso da NULL) alla support struct (è un indirizzo di memoria) del PCB corrent sulla CPU 
+  support_t* pcbsuppStruct = &current_process[p_id]->p_supportStruct;
+  //Inizializzata a NULL in allocPCB() controllo sul suo valore inutile, verrà passato NULL o un altro valore senza problemi 
+  stato->reg_a0 = pcbsuppStruct; 
+  stato->pc_epc += 4; 
+  RELEASE_LOCK(&global_lock);
+  LDST(stato); 
+}
+
+void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere 
+  ACQUIRE_LOCK(&global_lock);
+  //Se il parent del pcb che ha fatto la syscall è 0, allora in reg_a0 c'è il suo PID
+  pcb_t *currpcb = &current_process[p_id]; 
+  int id_pcb = stato->reg_a0;   //Se il parent è 0, gli id coincidono perchè sono lo stesso pcb, in reg_a0 c'è già il valore che voglio ritornare
+  if(currpcb->p_pid != id_pcb ){    
+    //Dentro l'if, allora il parent non era 0
+    
+    //FINIRE ... (da capire meglio)
+
+  }
+
+  //       (...)
+
+  RELEASE_LOCK(&global_lock);
+
 }
 
 void syscallHandler(state_t *stato){
@@ -284,10 +328,13 @@ if (registro < 0 && iskernel){
     GetCPUTime(stato, p_id);
     break;
    case CLOCKWAIT:
+    WaitForClock(stato, p_id);
     break;
   case GETSUPPORTPTR:
+    GetSupportData(stato, p_id); 
     break;
   case GETPROCESSID:
+    GetProcessId(stato, p_id); 
     break;
   default: 
     PANIC();
