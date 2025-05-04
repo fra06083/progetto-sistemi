@@ -29,7 +29,7 @@ Declare the Level 3 global variables. This should include:
 #define BASE_STACK0 (memaddr) 0x2000200           // Inizio dello stack
 int process_count = 0;                  // Contatore dei processi
 struct pcb_t *current_process[NCPU];    // Vettore di puntatori, 8 processi che vanno nelle varie CPU
-extern int sem[SEMDEVLEN]; // 48 + 1 semafori, 48 per i dispositivi e 1 pseudo-clock
+int sem[SEMDEVLEN]; // 48 + 1 semafori, 48 per i dispositivi e 1 pseudo-clock
 volatile unsigned int global_lock = 1;      // Lock globale
 struct list_head pcbReady;              // Lista dei processi pronti
 cpu_t start_time[NCPU]; // tempo di inizio di ogni processo

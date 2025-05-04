@@ -266,9 +266,9 @@ void WaitForClock(state_t *stato, unsigned int p_id){
 void GetSupportData(state_t *stato, unsigned int p_id){
   ACQUIRE_LOCK(&global_lock);
   //Restituisco in a0 il puntatore (se diverso da NULL) alla support struct (è un indirizzo di memoria) del PCB corrent sulla CPU 
-  support_t* pcbsuppStruct = &current_process[p_id]->p_supportStruct;
+  support_t* pcbsuppStruct = current_process[p_id]->p_supportStruct;
   //Inizializzata a NULL in allocPCB() controllo sul suo valore inutile, verrà passato NULL o un altro valore senza problemi 
-  stato->reg_a0 = pcbsuppStruct; 
+  stato->reg_a0 = (memaddr) pcbsuppStruct; // ci vuole il cast a memaddr
   stato->pc_epc += 4; 
   RELEASE_LOCK(&global_lock);
   LDST(stato); 
@@ -277,19 +277,20 @@ void GetSupportData(state_t *stato, unsigned int p_id){
 void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere 
   ACQUIRE_LOCK(&global_lock);
   //Se il parent del pcb che ha fatto la syscall è 0, allora in reg_a0 c'è il suo PID
-  pcb_t *currpcb = &current_process[p_id]; 
+  pcb_t *currpcb = current_process[p_id]; 
   int id_pcb = stato->reg_a0;   //Se il parent è 0, gli id coincidono perchè sono lo stesso pcb, in reg_a0 c'è già il valore che voglio ritornare
   if(currpcb->p_pid != id_pcb ){    
     //Dentro l'if, allora il parent non era 0
-    
+    stato->reg_a0 = (currpcb->p_parent == NULL) ? 0 : currpcb->p_parent->p_pid; // if inline, controlliamo se il parent è NULL, se lo è mettiamo 0, altrimenti mettiamo il pid del parent
     //FINIRE ... (da capire meglio)
 
+  } else {
+    stato->reg_a0 = currpcb->p_pid;
   }
 
-  //       (...)
-
+  stato->pc_epc += 4;
   RELEASE_LOCK(&global_lock);
-
+  LDST(stato);
 }
 
 void syscallHandler(state_t *stato){
