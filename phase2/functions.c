@@ -79,3 +79,21 @@ int findDevice(memaddr* indirizzo_comando) { // dobbiamo trovare il dispositivo 
   }
   return i; 
 }
+// calcolo del tempo, prende il tempo corrente e lo sottrae al tempo di inizio
+cpu_t getTime(int p_id) {
+  cpu_t ctime;
+  STCK(ctime);
+  cpu_t time = ctime - start_time[p_id]; // calcoliamo il tempo di esecuzione
+  return time;
+}
+
+// funzione per bloccare un processo
+void block(state_t *stato, int p_id, pcb_t* current){
+  stato->pc_epc += 4;
+  current->p_s = *stato;
+  current->p_time += getTime(p_id);
+  ACQUIRE_LOCK(&global_lock);
+  current_process[p_id] = NULL;
+  RELEASE_LOCK(&global_lock);
+  scheduler();
+}

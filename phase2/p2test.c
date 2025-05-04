@@ -263,7 +263,7 @@ void test() {
     if (p1p2synch == 0) {
         print("error: p1/p2 synchronization bad\n");
     }
-
+    print("p1/p2 synchronization OK\n");
     p3pid = SYSCALL(CREATEPROCESS, (int)&p3state, PROCESS_PRIO_LOW, (int)NULL); /* start p3     */
 
     print("p3 is started\n");
@@ -408,7 +408,6 @@ void p3() {
     for (i = 0; i < CLOCKLOOP; i++) {
         SYSCALL(CLOCKWAIT, 0, 0, 0);
     }
-
     cpu_t2 = SYSCALL(GETTIME, 0, 0, 0);
 
     if (cpu_t2 - cpu_t1 < (MINCLOCKLOOP / (*((cpu_t *)TIMESCALEADDR)))) {
@@ -422,7 +421,7 @@ void p3() {
         print("Inconsistent process id for p3!\n");
         PANIC();
     }
-
+    print("p3 - process id is OK\n");
     SYSCALL(VERHOGEN, (int)&sem_endp3, 0, 0); /* V(sem_endp3)        */
 
     SYSCALL(TERMPROCESS, 0, 0, 0); /* terminate p3    */
@@ -730,7 +729,7 @@ void hp_p1() {
     for (int i = 0; i < 10; i++) {
         SYSCALL(CLOCKWAIT, 0, 0, 0);
     }
-
+    print("hp_p1 - CLOCKWAIT OK\n");
     SYSCALL(TERMPROCESS, 0, 0, 0);
     print("Error: hp_p1 didn't die!\n");
     PANIC();

@@ -15,9 +15,21 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
  //DEFINIZIONE DELLE VARIABILI GLOBALI
 // FUNZIONI DI CONFIGURAZIONE
 void configureIRT(int line, int cpu) {
+  for (int line = 0; line < N_INTERRUPT_LINES; line++) {  // dobbiamo farlo per ogni linea di interruzione
+    for (int dev = 0; dev < N_DEV_PER_IL; dev++) {        // per ogni device
+      memaddr *irt_entry = (memaddr *)IRT_ENTRY(line, dev);
+      *irt_entry = IRT_RP_BIT_ON;                                                
+      for (int cpu_id = 0; cpu_id < NCPU; cpu_id++){
+        *irt_entry |= (1U << cpu_id); // setta il bit di destinazione, 1 << cpu ...001 | ...010 | ...100; in fase finale era sbagliata prima
+      }  
+    }
+  }
+
+  /*
   volatile memaddr * indirizzo_IRT = (volatile memaddr * )(IRT_START + (line * WS));
   * indirizzo_IRT |= IRT_RP_BIT_ON; // setta il bit di routing policy 1 << 28 in sostanza mette 1 a rp (|= non cancella la vecchia conf)
   * indirizzo_IRT |= (1 << cpu); // setta il bit di destinazione, 1 << cpu ...001 | ...010 | ...100
+*/
 }
 void configurePassupVector() {
 passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
@@ -46,7 +58,7 @@ void initializeSystem() {
   configurePassupVector(); // PUNTO DUE
   initPcbs();
   initASL();
-  mkEmptyProcQ( & pcbReady);
+  mkEmptyProcQ(&pcbReady);
   for (int i = 0; i < NCPU; i++) {
     current_process[i] = NULL;
     start_time[i] = 0; // Inizializziamo il tempo di inizio di ogni processo
@@ -75,7 +87,7 @@ void configureCPUs() {
     int cpucounter = (i / (IRT_NUM_ENTRY / NCPU)) % NCPU;
     configureIRT(i, cpucounter);
   }
-  *((memaddr *)TPR) = 0;
+ // *((memaddr *)TPR) = 0;
   state_t stato;
   stato.status = MSTATUS_MPP_M;
   stato.pc_epc = (memaddr) scheduler;
@@ -87,11 +99,9 @@ void configureCPUs() {
     stato.reg_sp = (0x20020000 + (i * PAGESIZE));
     INITCPU(i, &stato);
   }
-  klog_print("CPU settate!\n");
 }
 
 int main() {
-  klog_print("Avvio del Nucleo:\n");
 
   // Inizializzazione del sistema
   //punto 2.4

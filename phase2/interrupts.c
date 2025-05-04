@@ -114,12 +114,7 @@ void handlePLTInterrupt(state_t *stato) {
     //Acknowledge del PLT
     setTIMER(TIMESLICE);
     //Calcolo tempo utilizzato
-    cpu_t endTime;
-    STCK(endTime);
-
-    //Aggiornamento del tempo del processo con il tempo utilizzato
-    cpu_t elapsed = endTime - start_time[cpuid];
-    current_process[cpuid]->p_time += elapsed; 
+    current_process[cpuid]->p_time += getTime(cpuid); // calcoliamo il tempo di esecuzione
     current_process[cpuid]->p_s = *stato;       // copiamo lo stato del processo corrente
     insertProcQ(&pcbReady, current_process[cpuid]);  // mettiamo il processo corrente nella ready queue
     current_process[getPRID()] = NULL;

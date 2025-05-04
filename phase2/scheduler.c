@@ -9,7 +9,7 @@ Current Process field of the current CPU.
   ACQUIRE_LOCK(&global_lock);
   // Controllo se la ready queue è vuota
   if (emptyProcQ(&pcbReady)) {
-    if (process_count == 0) {
+    if (process_count == 0) { 
       // Ready queue vuota e nessun processo in esecuzione, quindi HALT
       RELEASE_LOCK(&global_lock); // Rilascio del lock prima di HALT
       HALT(); // Fermiamo l'esecuzione
@@ -20,6 +20,7 @@ Current Process field of the current CPU.
       unsigned int status = getSTATUS();
       status |= MSTATUS_MIE_MASK;
       setSTATUS(status);
+      
       *((memaddr * ) TPR) = 1; // Settiamo il TPR a 1 prima di fare WAIT
       WAIT();
     }
