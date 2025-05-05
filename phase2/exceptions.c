@@ -13,6 +13,7 @@ void uTLB_ExceptionHandler(){
 
 }
 void programTrapHandler(int cause, state_t* stato){
+  klog_print("ProgramTrapHandler");
   ACQUIRE_LOCK(&global_lock);
   int cpu_id = getPRID();
   pcb_t* current = current_process[cpu_id];
@@ -28,6 +29,7 @@ void programTrapHandler(int cause, state_t* stato){
     scheduler();
   }
 
+  RELEASE_LOCK(&global_lock);
   // Copia dell'eccezione
   current->p_supportStruct->sup_exceptState[cause] = *stato;
   context_t* context = &current->p_supportStruct->sup_exceptContext[cause];
@@ -101,7 +103,9 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
   if (process != NULL){
     killProcess(process); // non lo abbiamo trovato, il termprocess vuole terminare un processo che non esiste
     // dovremo far ripartire l'esecuzione del processo ma come??
+    RELEASE_LOCK(&global_lock);
     scheduler();
+    return;
   }
   RELEASE_LOCK(&global_lock);
   // dovremo far ripartire l'esecuzione del processo ma come??
@@ -228,7 +232,7 @@ void GetSupportData(state_t *stato, unsigned int p_id){
 void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
   //Se il parent del pcb che ha fatto la syscall è NULL, allora in reg_a0 ci deve essere il suo PID
   int parent = stato->reg_a1;
-  pcb_t *currpcb = current_process[p_id]; 
+  pcb_t *currpcb = current_process[p_id];
   if (parent) { // Dentro l'if allora il parent non era 0
       pcb_t* pcb_parent = currpcb->p_parent;
       if (pcb_parent == NULL){
@@ -251,14 +255,17 @@ important: In the implementation of each syscall, remember to access the global 
 Count, Ready Queue and Device Semaphores in a mutually exclusive way using ACQUIRE_LOCK and
 RELEASE_LOCK on the Global Lock, in order to avoid race condition.
 */
-int iskernel = stato->status & MSTATUS_MPP_M;
-unsigned int p_id = getPRID();
+int p_id = getPRID();
 int registro = stato->reg_a0;
-if (registro < 0 && iskernel){
-    // se il valore di a0 è negativo e siamo in kernel mode
-    // allora dobbiamo fare un'azione descritta nella pagina 7 del pdf
-   switch (registro)
-   {
+if (registro > 0){
+  programTrapHandler(GENERALEXCEPT, stato);
+}
+if (!(stato->status & MSTATUS_MPP_MASK)) { // SE E' IN USER MODE errore
+  // allora dobbiamo fare un'azione descritta nella pagina 7 del pdf
+  stato->cause = PRIVINSTR;
+  exceptionHandler();
+}
+switch (registro){
    case CREATEPROCESS:
     createProcess(stato);
     break;
@@ -291,11 +298,6 @@ if (registro < 0 && iskernel){
     PANIC();
     break;
    }
-} else {
-  klog_print("SyscallHandler > 0");
-  stato->cause = GENERALEXCEPT; // perché non è possibile usare questi casi in usermode.
-  programTrapHandler(GENERALEXCEPT, stato);
-}
 }
 
 

@@ -3,11 +3,21 @@ p2 was started
 p2 starts
 p2 v's successfully
 p2 is OK
-p1/p2 synchronization OK
 p3 is started
 p3 - CLOCKWAIT OK
 p3 - CPU time correctly maintained
-p3 - process id is OK
 hp_p1 starts
 first incarnation of p4 starts
 p5 starts
+p6 starts
+p7 starts
+p9 starts
+second incarnation of p4 starts
+Bus Error (as expected): Access non-existent memory
+p10 starts
+p4 is OK
+memory management trap
+Correct Support Structure Address
+Address Error (as expected): non-kuseg access w/KU=1
+High level SYS call from kernel mode process
+p1 knows p5 ended
