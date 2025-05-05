@@ -23,8 +23,8 @@ void programTrapHandler(int cause, state_t* stato){
   }
 
   if (current->p_supportStruct == NULL) {
-    RELEASE_LOCK(&global_lock);
     killProcess(current);
+    RELEASE_LOCK(&global_lock);
     scheduler();
   }
 
@@ -32,7 +32,6 @@ void programTrapHandler(int cause, state_t* stato){
   current->p_supportStruct->sup_exceptState[cause] = *stato;
   context_t* context = &current->p_supportStruct->sup_exceptContext[cause];
   LDCXT(context->stackPtr, context->status, context->pc);
-  RELEASE_LOCK(&global_lock);
 /*
   This function allows a current process to change its operating mode,
  * turning on/off interrupt masks, turning on user mode, and at the same time
@@ -132,7 +131,6 @@ void P(state_t* stato, unsigned int p_id) {
       }
       RELEASE_LOCK(&global_lock);
   }
-  RELEASE_LOCK(&global_lock);  // rilascia il lock
   stato->pc_epc += 4;  // incrementa il program counter
   LDST(stato);  // ripristina lo stato del processo
 }
@@ -242,7 +240,6 @@ void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
       stato->reg_a0 = currpcb->p_pid;
   }
   stato->pc_epc += 4;
-  RELEASE_LOCK(&global_lock);
   LDST(stato);
 }
 
