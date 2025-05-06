@@ -59,6 +59,7 @@ int insertBlocked(int *semAdd, pcb_t *p)
     list_add_tail(&p->p_list, &semDaInserire->s_procq);
     //Aggiungo il semaforo nella lista dei semafori attivi 
     list_add_tail(&semDaInserire->s_link, &semd_h);
+    p->p_semAdd = semAdd; // setto il semaforo di p
     return FALSE;
 }
 /*
@@ -108,7 +109,14 @@ pcb_t *outBlocked(pcb_t *p)
         if (entry->s_key == p->p_semAdd)
         {
            pcb_t* processi = outProcQ(&entry->s_procq, p); // rimuovo la process queue da p per poi restituirlo.
-           if (emptyProcQ(&processi->p_list)) list_add_tail(&entry->s_link, &semdFree_h);
+           if (emptyProcQ(&entry->s_procq))
+            {
+                list_del(&entry->s_link);
+                list_add_tail(&entry->s_link, &semdFree_h);
+                /*
+                lo rinserisco nella semdFree_h visto che la coda è vuota non è più utilizzata
+                */
+            }
            return processi;
         }
     }
@@ -118,7 +126,7 @@ pcb_t *outBlocked(pcb_t *p)
 In sostanza è una funzione che cerca un processo in blocked queue
 e se lo trova lo rimuove dalla blocked queue (se remove è >0) e lo restituisce.
 */
-pcb_t *findBlockedPid(int pid, int remove)
+pcb_t *findBlockedPid(int pid)
 {
     semd_t *entry = NULL;
     list_for_each_entry(entry, &semd_h, s_link)
@@ -128,12 +136,6 @@ pcb_t *findBlockedPid(int pid, int remove)
         {
             if (processo->p_pid == pid)
             {
-                if (remove)
-                {
-                    // se remove è true, rimuoviamo il processo dalla blocked queue
-                    processo = outBlocked(processo);
-                    return processo;
-                }
                 return processo;
             }
         }

@@ -21,3 +21,48 @@ Correct Support Structure Address
 Address Error (as expected): non-kuseg access w/KU=1
 High level SYS call from kernel mode process
 p1 knows p5 ended
+p1 creating p8
+p8root starts
+p1 created p8
+child1 starts
+child2 starts
+leaf process (1) starts
+leaf process (2) starts
+leaf process (3) starts
+leaf process (4) starts
+p1 creating p8
+p8root starts
+p1 created p8
+child1 starts
+child2 starts
+leaf process (1) starts
+leaf process (2) starts
+leaf process (3) starts
+leaf process (4) starts
+p1 creating p8
+p8root starts
+p1 created p8
+child1 starts
+child2 starts
+leaf process (1) starts
+leaf process (2) starts
+leaf process (3) starts
+leaf process (4) starts
+p1 creating p8
+p8root starts
+p1 created p8
+child1 starts
+child2 starts
+leaf process (1) starts
+leaf process (2) starts
+leaf process (3) starts
+leaf process (4) starts
+p1 finishes OK -- TTFN
+System halted 
+System halted 
+System halted 
+System halted 
+System halted 
+System halted 
+System halted 
+System halted 

@@ -78,12 +78,16 @@ void createProcess(state_t *c_state){
   new_process->p_s = *p_s;
   new_process->p_supportStruct = (support_t *) c_state->reg_a3;
   if (current_process[getPRID()] != NULL) {
+    klog_print("Processo figlio acceso\n");
     insertChild(current_process[getPRID()], new_process);
   }
   insertProcQ(&pcbReady, new_process); // va aggiunto alla ready queue!!
   process_count++;
-  c_state->reg_a0 = new_process->p_pid;
+  klog_print("Processo creato con PID: ");
+  klog_print_dec(new_process->p_pid);
+  klog_print("\n");
   RELEASE_LOCK(&global_lock);
+  c_state->reg_a0 = new_process->p_pid;
   c_state->pc_epc += 4; // lo dice nel punto dopo
   LDST(c_state);
 }
@@ -93,13 +97,11 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
   if (p_id==0){
     // terminiamo il processo
     killProcess(current_process[p_id]);
-    current_process[getPRID()] = NULL;
-    process_count--;
     RELEASE_LOCK(&global_lock);
     scheduler(); // va nello scheduler se abbiamo terminato il processo corrente
   } else { 
     // CERCHIAMO il processo, mettiamo true così lo rimuove di già
-  pcb_t *process = findProcess(p_id, 1);
+  pcb_t *process = findProcess(p_id);
   if (process != NULL){
     killProcess(process); // non lo abbiamo trovato, il termprocess vuole terminare un processo che non esiste
     // dovremo far ripartire l'esecuzione del processo ma come??

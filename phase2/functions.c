@@ -9,9 +9,25 @@ void killProcess(pcb_t *process){
       killProcess(child); // chiamiamo ricorsivamente la funzione per uccidere i sottoprocessi
       /* Dobbiamo proprio vederlo come un albero, unico pcb_t che può avere la p_list e i p_child */
     }
+    if (process->p_semAdd != NULL) {
+      // Process blocked on semaphore
+      outBlocked(process);
+      (*process->p_semAdd)++;
+    } else if (outProcQ(&pcbReady, process) == NULL) {
+      // se il processo non è in ready queue
+      // e non è in blocked queue, allora non lo troviamo
+      // e non possiamo liberarlo
+      return;
+    }
+    process_count--;
+    if (process->p_parent != NULL) {
+      outChild(process);  // rimuoviamo il processo dalla lista dei figli
+    }
       outProcQ(&pcbReady, process); // svuotiamo il processo dalla ready queue
       freePcb(process); // liberiamo il pcb nella free list
-  
+      if (process == current_process[getPRID()])
+        current_process[getPRID()] = NULL;
+
 }
 /* FUNZIONE PER CERCARE UN PROCESSO IN:
 - CURRENT PROCESS
@@ -20,16 +36,9 @@ void killProcess(pcb_t *process){
 l'int remove serve per sapere se dobbiamo rimuovere il processo
 e restituirlo, oppure no.
 */
-pcb_t *findProcess(int pid, int remove) {
+pcb_t *findProcess(int pid) {
   for (int i = 0; i < NCPU; i++) {
     if (current_process[i] != NULL && current_process[i]->p_pid == pid) {
-     if (remove) {
-        // se remove è true, rimuoviamo il processo dalla current process
-        pcb_t *processo = current_process[i];
-        current_process[i] = NULL;
-        process_count--;
-        return processo;
-      }
       return current_process[i];
     }
   }
@@ -39,7 +48,7 @@ pcb_t *findProcess(int pid, int remove) {
     if (processo->p_pid == pid) return processo;
  }
     // sennò cerchiamo nella blocked queue
-  pcb_t *bloccato = findBlockedPid(pid, remove);
+  pcb_t *bloccato = findBlockedPid(pid);
   if (bloccato != NULL) {
     return bloccato; // trovato
   }

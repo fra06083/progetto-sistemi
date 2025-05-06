@@ -11,7 +11,7 @@ extern int start_time[NCPU];
 extern int sem[SEMDEVLEN];
 
 extern void scheduler();
-pcb_t *findProcess(int pid, int remove);
+pcb_t *findProcess(int pid);
 void killProcess(pcb_t *process);
 void* memcpy(void* dest, const void* src, unsigned int len);
 int findDevice(memaddr* indirizzo_comando);

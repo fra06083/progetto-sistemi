@@ -89,16 +89,16 @@ void handleDeviceInterrupt(int intLine, int devNo) {
     (*semaforoV)++;
     pcb_t *bloccato = removeBlocked(semaforoV); // rimuove il processo bloccato dal semaforo
     if (bloccato != NULL) {
-        bloccato->p_semAdd = NULL;
         bloccato->p_s.reg_a0 = status;
         insertProcQ(&pcbReady, bloccato);
     }
-    RELEASE_LOCK(&global_lock);
     // Ripristino esecuzione
     //7.1.7 Tornare al Current Process o Scheduler:
     if(current_process[cpuid] != NULL) {
+        RELEASE_LOCK(&global_lock);
         LDST(&current_process[cpuid]->p_s);
     } else {
+        RELEASE_LOCK(&global_lock);
         scheduler();
     }
 }
@@ -133,7 +133,7 @@ void handleIntervalTimerInterrupt() {
     // Sblocco processi pseudo-clock (sem[NSEMAPHORES-1])
     //7.3.2 Unblock all PCBs blocked waiting a Pseudo-clock tick
     int *clock = &sem[PSEUDOSEM];
-    pcb_t *bloccato; // serve solo per il while
+    pcb_t *bloccato = NULL; // serve solo per il while
     // rimuovo i processi bloccati
     // e li inserisce nella ready queue
     ACQUIRE_LOCK(&global_lock);

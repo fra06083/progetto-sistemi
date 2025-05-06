@@ -122,7 +122,6 @@ void adderrbuf(char *strp) {
 
 int main(void) {
     int i;
-    klog_print("PARTE LO SCHEDULER");
     initPcbs();
     addokbuf("Initialized process control blocks   \n");
 

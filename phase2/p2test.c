@@ -291,8 +291,7 @@
  
      print("p1 knows p5 ended\n");
  
-     SYSCALL(PASSEREN, (int)&sem_blkp4, 0, 0); /* P(sem_blkp4)		*/
-     print("fatta la p");
+ //    SYSCALL(PASSEREN, (int)&sem_blkp4, 0, 0); /* P(sem_blkp4)		*/
      /* now for a more rigorous check of process termination */
      for (p8inc = 0; p8inc < 4; p8inc++) {
          /* Reset semaphores */ 
@@ -301,9 +300,9 @@
          for (int i = 0; i < NOLEAVES; i++) {
              sem_endcreate[i] = 0;
          }
- 
+         print("p1 creating p8\n");
          p8pid = SYSCALL(CREATEPROCESS, (int)&p8rootstate, PROCESS_PRIO_LOW, (int)NULL);
- 
+         print("p1 created p8\n");
          SYSCALL(PASSEREN, (int)&sem_endp8, 0, 0);
      }
  
@@ -469,7 +468,6 @@
      print("p4 is OK\n");
  
      SYSCALL(VERHOGEN, (int)&sem_endp4, 0, 0); /* V(sem_endp4)          */
- 
      SYSCALL(TERMPROCESS, 0, 0, 0); /* terminate p4      */
  
      /* just did a SYS2, so should not get to this point */

@@ -50,10 +50,14 @@ pcb_t* allocPcb() {
         INIT_LIST_HEAD(&pcb_rimosso->p_child);  
         INIT_LIST_HEAD(&pcb_rimosso->p_sib); 
         pcb_rimosso->p_supportStruct = NULL;  
-        pcb_rimosso->p_pid = next_pid;
+        pcb_rimosso->p_pid = next_pid++;
         pcb_rimosso->p_time = 0;
         pcb_rimosso->p_semAdd = NULL;
-// rinizializzo tutto quanto e restituisco
+        pcb_rimosso->p_s.cause = 0; // inizializzo il process state a NULL
+        pcb_rimosso->p_s.status = 0; 
+        pcb_rimosso->p_s.pc_epc = 0;
+        pcb_rimosso->p_s.mie = 0; // inizializzo il process state a NULL
+        pcb_rimosso->p_s.entry_hi = 0;  
         return (pcb_rimosso);
     }
 }
