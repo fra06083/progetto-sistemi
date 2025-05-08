@@ -11,7 +11,7 @@ Current Process field of the current CPU.
   if (emptyProcQ(&pcbReady)) {
     if (process_count == 0) { 
       // Ready queue vuota e nessun processo in esecuzione, quindi HALT
-      RELEASE_LOCK(&global_lock); // Rilascio del lock prima di HALT
+      RELEASE_LOCK(&global_lock); // Rilascio del lock prima di fermare l'esecuzione, quindi HALT
       HALT(); // Fermiamo l'esecuzione
     } else {
       // Ready queue vuota, ma ci sono processi in esecuzione, quindi WAIT
@@ -21,18 +21,20 @@ Current Process field of the current CPU.
       status |= MSTATUS_MIE_MASK;
       setSTATUS(status);
       
-      *((memaddr * ) TPR) = 1; // Settiamo il TPR a 1 prima di fare WAIT
-      WAIT();
+      *((memaddr * ) TPR) = 1; // // Impostiamo TPR a 1 prima di WAIT
+      WAIT();    // Entra in Wait State
     }
   } else {
-    // Dispatch del prossimo processo
+    // La ready queue non è vuota: selezioniamo e dispatchiamo il prossimo processo
     int pid = getPRID();
-    pcb_t *pcb = removeProcQ(&pcbReady);
-    current_process[pid] = pcb;
-    // Settiamo il timeslice per il processo   // LDIT(TIMESLICE);
+    pcb_t *pcb = removeProcQ(&pcbReady);     // Rimuoviamo il processo dalla Ready Queue
+    current_process[pid] = pcb;              // Aggiorniamo il current process del CPU
+      
+     // Carichiamo il valore di time slice nel PLT per il processo appena dispatchato
     setTIMER(TIMESLICE); // Impostiamo il timer per il timeslice
     *((memaddr*)TPR) = 0; // Settiamo il TPR a 0 per abilitare le interruzioni
     STCK(start_time[pid]);  // settiamo il tempo di inizio del processo
+      
     // Rilasciamo il lock dopo aver completato il dispatch
     RELEASE_LOCK(&global_lock);
     // Carichiamo il contesto del processo
