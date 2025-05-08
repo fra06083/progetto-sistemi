@@ -49,22 +49,20 @@ void interruptHandler(int intCode, state_t *stato) {
         handleDeviceInterrupt(intlineNo, getDevNo(intlineNo));
         break;
       default:
-        break;
+        break; // Nessuna gestione prevista
     }
 }
 
 
-// Gestione Interrupt Dispositivo (Sezione 7.1)
-// problema registro a0
+// Gestione interrupt device I/O (inclusi terminali) — Sezione 7.1
 void handleDeviceInterrupt(int intLine, int devNo) {
     int cpuid = getPRID();
     unsigned int status;
-    // Calcolo indirizzo dispositivo
     //7.1.1 Calculate the address for this device’s device register [Section 12]
     memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (devNo * 0x10);
     ACQUIRE_LOCK(&global_lock);
-    // MANCAVA STA PARTE
-    if (intLine == 7) { // gestione terminale
+    // Gestione per i terminali 
+    if (intLine == 7) { 
         termreg_t *termReg = (termreg_t *)devAddr;
         unsigned int trans_stat = termReg->transm_status & 0xFF;
         if (2 <= trans_stat && trans_stat <= OKCHARTRANS) { 
@@ -76,14 +74,13 @@ void handleDeviceInterrupt(int intLine, int devNo) {
           termReg->recv_command = ACK;
         }
       } else {
-        // device generico, se non è un terminale
+        // Gestione generica per dispositivi non terminali
         dtpreg_t *devReg = (dtpreg_t *)devAddr;
-        status = devReg->status;  // punto 7.2, ci salviamo lo stato del dispositivo
-        devReg->command = ACK; //7.1.3 Acknowledge l'interrupt (scrivere ACK nel command register):
+        status = devReg->status;  // Salvataggio dello stato del dispositivo
+        devReg->command = ACK;  // Acknowledge scrivendo ACK nel registro command
       }
     
-    // Gestione semaforo
-    //7.1.4 V operation su semaforo associato al device
+    // Gestione Semaforo - V operation su semaforo associato al device — Sezione 7.1.4
     int device = findDevice((memaddr *)devAddr); // trova il dispositivo
     int *semaforoV = &sem[device];  // get the semaphore of the device
     (*semaforoV)++;
@@ -92,8 +89,7 @@ void handleDeviceInterrupt(int intLine, int devNo) {
         bloccato->p_s.reg_a0 = status;
         insertProcQ(&pcbReady, bloccato);
     }
-    // Ripristino esecuzione
-    //7.1.7 Tornare al Current Process o Scheduler:
+    // Ripristino dell’esecuzione: processo corrente o invocazione dello scheduler — 7.1.7
     if(current_process[cpuid] != NULL) {
         RELEASE_LOCK(&global_lock);
         LDST(&current_process[cpuid]->p_s);
@@ -104,8 +100,7 @@ void handleDeviceInterrupt(int intLine, int devNo) {
 }
 
 
-// Gestione PLT (Sezione 7.2)
-//forse problema con tempo processo
+// Gestione del Process Local Timer (PLT) — Sezione 7.2
 void handlePLTInterrupt(state_t *stato) {
     ACQUIRE_LOCK(&global_lock);
     int cpuid = getPRID();
@@ -113,13 +108,14 @@ void handlePLTInterrupt(state_t *stato) {
     // Ricarica timer 
     //Acknowledge del PLT
     setTIMER(TIMESLICE);
+    
     //Calcolo tempo utilizzato
-    current_process[cpuid]->p_time += getTime(cpuid); // calcoliamo il tempo di esecuzione
-    current_process[cpuid]->p_s = *stato;       // copiamo lo stato del processo corrente
-    insertProcQ(&pcbReady, current_process[cpuid]);  // mettiamo il processo corrente nella ready queue
+    current_process[cpuid]->p_time += getTime(cpuid);   // calcoliamo il tempo di esecuzione
+    current_process[cpuid]->p_s = *stato;               // copiamo lo stato del processo corrente
+    insertProcQ(&pcbReady, current_process[cpuid]);     // mettiamo il processo corrente nella ready queue
     current_process[getPRID()] = NULL;
     RELEASE_LOCK(&global_lock);
-    scheduler();
+    scheduler();     // Selezione di un nuovo processo da eseguire
 }
 
 
@@ -130,21 +126,19 @@ void handleIntervalTimerInterrupt() {
     //7.3.1  Acknowledgement dell'interrupt e ricarica dell'Interval Timer
     LDIT(PSECOND);
 
-    // Sblocco processi pseudo-clock (sem[NSEMAPHORES-1])
-    //7.3.2 Unblock all PCBs blocked waiting a Pseudo-clock tick
+    // Sblocco dei processi in attesa del pseudo-clock — 7.3.2
     int *clock = &sem[PSEUDOSEM];
-    pcb_t *bloccato = NULL; // serve solo per il while
-    // rimuovo i processi bloccati
-    // e li inserisce nella ready queue
+    pcb_t *bloccato = NULL;
+    
+    // rimuovo i processi bloccati e li inserisce nella ready queue
     ACQUIRE_LOCK(&global_lock);
     while ((bloccato = removeBlocked(clock)) != NULL) {
         insertProcQ(&pcbReady, bloccato);
     }
     RELEASE_LOCK(&global_lock);
-    // RILASCIAMO IL LOCK GLOBALE qui
+    // RILASCIAMO IL LOCK GLOBALE
 
-    // Ripristino esecuzione
-    //7.3.3 Return control to the Current Process of the current CPU
+    // Ripristino dell’esecuzione del processo corrente 7.3.3
     if(current_process[getPRID()] != NULL) {
         LDST(&current_process[getPRID()]->p_s);
     } else {
