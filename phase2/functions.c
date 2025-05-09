@@ -9,6 +9,8 @@ void killProcess(pcb_t *process){
       killProcess(child); // chiamiamo ricorsivamente la funzione per uccidere i sottoprocessi
       /* Dobbiamo proprio vederlo come un albero, unico pcb_t che può avere la p_list e i p_child */
     }
+
+    // PARTE CHE CANCELLA EFFETTIVAMENTE
     if (process->p_semAdd != NULL) {
       // Process blocked on semaphore
       outBlocked(process);
@@ -59,12 +61,12 @@ pcb_t *findProcess(int pid) {
 // Ritorna il puntatore a 'dest'
 // Questa funzione è simile a quella della libreria standard, ma non usa i registri
 void* memcpy(void* dest, const void* src, unsigned int len) {
-  char* d = dest;           // Cast destination pointer to a char pointer
-  const char* s = src;      // Cast source pointer to a const char pointer
-  while (len--) {           // Loop until 'len' bytes are copied
-    *d++ = *s++;            // Copy each byte from source to destination
+  char* d = dest;           
+  const char* s = src;    
+  while (len--) {           
+    *d++ = *s++; // Copia byte per byte           
   }
-  return dest;              // Return the destination pointer
+  return dest;              
 }
 /* 
 
@@ -78,15 +80,22 @@ Field #    | Address          | Field Name
 Da quanto ho capito in sostanza ogni device (guarda sezione 12, passa da 10 in 10 ed è esattamente quello che fa questa funzione)
 
 */
+// funzione per trovare il dispositivo a partire dall'indirizzo di comando
 int findDevice(memaddr* indirizzo_comando) { // dobbiamo trovare il dispositivo dal suo indirizzo
   unsigned int offset = (unsigned int) indirizzo_comando - START_DEVREG; // calcoliamo l'offset
-  int i = -1;
-  if (offset >= (32 * 0x10)) {
-    i = 32 + ((offset - (32 * 0x10)) / 0x8);
+  int dev = -1; // inizializziamo il dispositivo a -1
+  /* Problema: come troviamo l'indice del dispositivo?
+   SOLUZIONE:
+   In sostanza abbiamo:
+   32 dispositivi, 16 terminali, 2 sub-devices per terminale
+   così ritorniamo l'indice del dispositivo in questo modo
+  */
+  if (offset >= (DEVICES * 0x10)) {
+    dev = (DEVICES + ((offset - (DEVICES * 0x10)) / 0x8));
   } else {
-    i = offset / 0x10;  
+    dev = (offset / 0x10);  
   }
-  return i; 
+  return dev; 
 }
 // calcolo del tempo, prende il tempo corrente e lo sottrae al tempo di inizio
 cpu_t getTime(int p_id) {
@@ -98,6 +107,10 @@ cpu_t getTime(int p_id) {
 
 // funzione per bloccare un processo
 void block(state_t *stato, int p_id, pcb_t* current){
+/* funzione per non ripetere questa parte nelle varie syscall
+   Così limitiamo il lock alle critical section
+   e non lo teniamo bloccato per tutto il tempo
+*/
   stato->pc_epc += 4;
   current->p_s = *stato;
   current->p_time += getTime(p_id);

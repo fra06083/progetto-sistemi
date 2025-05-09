@@ -1,7 +1,8 @@
 #ifndef FUNCS_H_INCLUDED
 #define FUNCS_H_INCLUDED
 #include "dipendenze.h"
-
+#define TERMDEVICES 16 // 8 terminali, 2 sub-devices per terminale
+#define DEVICES (NSUPPSEM - TERMDEVICES) // 48 - 16 = 32
 extern pcb_t *current_process[NCPU]; 
 extern struct list_head pcbReady;
 extern volatile unsigned int global_lock;

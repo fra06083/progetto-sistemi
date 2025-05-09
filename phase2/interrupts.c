@@ -62,16 +62,16 @@ void handleDeviceInterrupt(int intLine, int devNo) {
     memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (devNo * 0x10);
     ACQUIRE_LOCK(&global_lock);
     // Gestione per i terminali 
-    if (intLine == 7) { 
-        termreg_t *termReg = (termreg_t *)devAddr;
-        unsigned int trans_stat = termReg->transm_status & 0xFF;
-        if (2 <= trans_stat && trans_stat <= OKCHARTRANS) { 
-          status = termReg->transm_status;
-          termReg->transm_command = ACK;
+    if (intLine == 7) { // se è 7 abbiamo la gestione di I/O per i terminali
+        termreg_t *term_reg = (termreg_t *)devAddr;
+        unsigned int status_tr = term_reg->transm_status & 0xFF;
+        if (2 <= status_tr && status_tr <= OKCHARTRANS) { 
+          status = term_reg->transm_status;
+          term_reg->transm_command = ACK;
           devAddr += 0x8; // Abbiamo visto il calcolo dall'ultima tabella.
         } else {  
-          status = termReg->recv_status;
-          termReg->recv_command = ACK;
+          status = term_reg->recv_status;
+          term_reg->recv_command = ACK;
         }
       } else {
         // Gestione generica per dispositivi non terminali
@@ -107,8 +107,8 @@ void handlePLTInterrupt(state_t *stato) {
 
     // Ricarica timer 
     //Acknowledge del PLT
+   // setTIMER(TIMESLICE * (*(cpu_t *)TIMESCALEADDR)); non va
     setTIMER(TIMESLICE);
-    
     //Calcolo tempo utilizzato
     current_process[cpuid]->p_time += getTime(cpuid);   // calcoliamo il tempo di esecuzione
     current_process[cpuid]->p_s = *stato;               // copiamo lo stato del processo corrente

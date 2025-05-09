@@ -170,7 +170,7 @@ void DoIO(state_t *stato, unsigned int p_id){
   // Dobbiamo implementare il codice per gestire questa operazione
   ACQUIRE_LOCK(&global_lock);
   memaddr* indirizzo_comando = (memaddr*) stato->reg_a1;  // prendiamo il comando e il suo valore
-  int value = stato->reg_a2;                
+  int v = stato->reg_a2;                
 
   if (indirizzo_comando == NULL) {
     RELEASE_LOCK(&global_lock);
@@ -180,9 +180,8 @@ void DoIO(state_t *stato, unsigned int p_id){
     return;
   }
 
-  pcb_t* pcb_attuale = current_process[p_id];       
+  pcb_t* pcb_attuale = current_process[p_id];
   int devIndex = findDevice(indirizzo_comando - 1);  // troviamo il dispositivo
-  
   if (devIndex < 0) {
     RELEASE_LOCK(&global_lock);
     stato->reg_a0 = -1;  // dispositivo non valido, -1 in reg a0
@@ -200,7 +199,7 @@ void DoIO(state_t *stato, unsigned int p_id){
   pcb_attuale->p_time = getTime(p_id);  // update tempo di esecuzione
   RELEASE_LOCK(&global_lock);
 
-  *indirizzo_comando = value;  // scrivi il valore nel dispositivo
+  *indirizzo_comando = v;  // scrivi il valore nel dispositivo
   scheduler();
   return;  // ritorna alla funzione chiamante
 }
@@ -224,9 +223,11 @@ void WaitForClock(state_t *stato, unsigned int p_id){
 
 void GetSupportData(state_t *stato, unsigned int p_id){
   //Restituisco in a0 il puntatore (se diverso da NULL) alla support struct (è un indirizzo di memoria) del PCB corrent sulla CPU 
+  ACQUIRE_LOCK(&global_lock);
   support_t* pcbsuppStruct = current_process[p_id]->p_supportStruct;
   //Inizializzata a NULL in allocPCB() controllo sul suo valore inutile, verrà passato NULL o un altro valore senza problemi 
   stato->reg_a0 = (memaddr) pcbsuppStruct; // ci vuole il cast a memaddr
+  RELEASE_LOCK(&global_lock);
   stato->pc_epc += 4; 
   LDST(stato); 
 }
@@ -234,6 +235,7 @@ void GetSupportData(state_t *stato, unsigned int p_id){
 void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
   //Se il parent del pcb che ha fatto la syscall è NULL, allora in reg_a0 ci deve essere il suo PID
   int parent = stato->reg_a1;
+  ACQUIRE_LOCK(&global_lock);
   pcb_t *currpcb = current_process[p_id];
   if (parent) { // Dentro l'if allora il parent non era 0
       pcb_t* pcb_parent = currpcb->p_parent;
@@ -245,6 +247,7 @@ void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
   } else { // parent è 0, quindi restituisco il pid del processo corrente
       stato->reg_a0 = currpcb->p_pid;
   }
+  RELEASE_LOCK(&global_lock);
   stato->pc_epc += 4;
   LDST(stato);
 }
