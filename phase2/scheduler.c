@@ -29,10 +29,8 @@ Current Process field of the current CPU.
     int pid = getPRID();
     pcb_t *pcb = removeProcQ(&pcbReady);     // Rimuoviamo il processo dalla Ready Queue
     current_process[pid] = pcb;              // Aggiorniamo il current process del CPU
-      
      // Carichiamo il valore di time slice nel PLT per il processo appena dispatchato
-   // setTIMER(TIMESLICE * (*(cpu_t *)TIMESCALEADDR));
-    setTIMER(TIMESLICE);
+    setTIMER(TIMESLICE * (*(cpu_t *)TIMESCALEADDR));
     *((memaddr*)TPR) = 0; // Settiamo il TPR a 0 per abilitare le interruzioni
     STCK(start_time[pid]);  // settiamo il tempo di inizio del processo
       

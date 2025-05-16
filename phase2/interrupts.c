@@ -68,7 +68,8 @@ void handleDeviceInterrupt(int intLine, int devNo) {
         if (2 <= status_tr && status_tr <= OKCHARTRANS) { 
           status = term_reg->transm_status;
           term_reg->transm_command = ACK;
-          devAddr += 0x8; // Abbiamo visto il calcolo dall'ultima tabella.
+          devAddr += 0x8; // Abbiamo visto il calcolo dall'ultima tabella. 
+          // 0x8 è il passo per passare dal registro di trasmissione a quello di ricezione
         } else {  
           status = term_reg->recv_status;
           term_reg->recv_command = ACK;
@@ -107,8 +108,8 @@ void handlePLTInterrupt(state_t *stato) {
 
     // Ricarica timer 
     //Acknowledge del PLT
-   // setTIMER(TIMESLICE * (*(cpu_t *)TIMESCALEADDR)); non va
-    setTIMER(TIMESLICE);
+    setTIMER(TIMESLICE * (*(cpu_t *)TIMESCALEADDR)); // non va
+    // setTIMER(TIMESLICE);
     //Calcolo tempo utilizzato
     current_process[cpuid]->p_time += getTime(cpuid);   // calcoliamo il tempo di esecuzione
     current_process[cpuid]->p_s = *stato;               // copiamo lo stato del processo corrente

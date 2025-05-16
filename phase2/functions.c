@@ -51,10 +51,11 @@ pcb_t * findProcess(int pid) {
     }
     return NULL; // not found
 }
-
-
-// Implementazione della funzione memcpy,
-// simile alla controparte nella libreria standard,ma non usa i registri
+/* implementazione della funzione memcpy che sennò dà problemi e dobbiamo impazzire
+ * Copia 'len' byte dall'area 'src' in 'dest'
+ * Ritorna il puntatore a 'dest'
+ * Questa funzione è simile a quella della libreria standard, ma non usa i registri
+ */
 void* memcpy(void* dest, const void* src, unsigned int len) {
     char * d = dest;
     const char* s = src;
@@ -83,13 +84,17 @@ Il calcolo dell’indice considera:
 // Funzione che trova il dispositivo a partire dall'indirizzo di comando
 int findDevice(memaddr * indirizzo_comando) { 
   unsigned int offset = (unsigned int) indirizzo_comando - START_DEVREG; // calcoliamo l'offset
-  int dev = -1; // inizializziamo il dispositivo a -1
-    if (offset >= (DEVICES * 0x10)) {
-        dev = (DEVICES + ((offset - (DEVICES * 0x10)) / 0x8));
-    } else {
-        dev = (offset / 0x10);
-    }
-    return dev;
+
+  /* Problema: come troviamo l'indice del dispositivo?
+   SOLUZIONE:
+   In sostanza abbiamo:
+   32 dispositivi, 16 terminali, 2 sub-devices per terminale
+   così ritorniamo l'indice del dispositivo in questo modo
+  */
+  if (offset >= (DEVICES * 0x10)) {
+    return (DEVICES + ((offset - (DEVICES * 0x10)) / 0x8));
+  } 
+    return (offset / 0x10);
 }
 // calcolo del tempo, prende il tempo corrente e lo sottrae al tempo di inizio
 cpu_t getTime(int p_id) {

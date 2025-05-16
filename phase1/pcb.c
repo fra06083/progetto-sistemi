@@ -120,7 +120,7 @@ pcb_t* outProcQ(struct list_head* head, pcb_t* p) { //(entry->s_procq, p)
     list_for_each(lista_iter, head) {
         if (lista_iter == &p->p_list) {
             // processo trovato, rimuovilo dalla process queue
-            list_del(lista_iter);
+            list_del(&p->p_list);
             return p; // Restituisco il PCB rimosso
         }
     }
