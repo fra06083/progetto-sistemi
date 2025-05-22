@@ -128,21 +128,23 @@ void handleIntervalTimerInterrupt() {
     LDIT(PSECOND);
 
     // Sblocco dei processi in attesa del pseudo-clock — 7.3.2
+    ACQUIRE_LOCK(&global_lock);
     int *clock = &sem[PSEUDOSEM];
     pcb_t *bloccato = NULL;
     
     // rimuovo i processi bloccati e li inserisce nella ready queue
-    ACQUIRE_LOCK(&global_lock);
+    //ACQUIRE LOCK era qua
     while ((bloccato = removeBlocked(clock)) != NULL) {
         insertProcQ(&pcbReady, bloccato);
     }
-    RELEASE_LOCK(&global_lock);
-    // RILASCIAMO IL LOCK GLOBALE
+    //Vecchio RELEASE_LOCK
 
     // Ripristino dell’esecuzione del processo corrente 7.3.3
     if(current_process[getPRID()] != NULL) {
+        RELEASE_LOCK(&global_lock);
         LDST(&current_process[getPRID()]->p_s);
     } else {
+        RELEASE_LOCK(&global_lock);
         scheduler();
     }
 }
