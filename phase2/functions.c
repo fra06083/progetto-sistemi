@@ -58,11 +58,12 @@ pcb_t * findProcess(int pid) {
  */
 void *memcpy(void *dest, const void *src, unsigned int len)
 {
-    for (unsigned int i = 0; i < len; i++)
-    {
-        ((char*) dest)[i] = ((char*)src)[i]; // Copia byte per byte
-    }
-    return dest;
+  char *d = dest;
+  const char *s = src;
+  while (len--){
+    *d++ = *s++;
+  }
+  return dest;
 }
 /* 
 
