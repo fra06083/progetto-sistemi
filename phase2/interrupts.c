@@ -56,11 +56,11 @@ void interruptHandler(int intCode, state_t *stato) {
 
 // Gestione interrupt device I/O (inclusi terminali) — Sezione 7.1
 void handleDeviceInterrupt(int intLine, int devNo) {
+    ACQUIRE_LOCK(&global_lock);
     int cpuid = getPRID();
     unsigned int status;
     //7.1.1 Calculate the address for this device’s device register [Section 12]
     memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (devNo * 0x10);
-    ACQUIRE_LOCK(&global_lock);
     // Gestione per i terminali 
     if (intLine == 7) { // se è 7 abbiamo la gestione di I/O per i terminali
         termreg_t *term_reg = (termreg_t *)devAddr;
@@ -126,9 +126,8 @@ void handleIntervalTimerInterrupt() {
     // Ricarica timer
     //7.3.1  Acknowledgement dell'interrupt e ricarica dell'Interval Timer
     LDIT(PSECOND);
-
-    // Sblocco dei processi in attesa del pseudo-clock — 7.3.2
     ACQUIRE_LOCK(&global_lock);
+    // Sblocco dei processi in attesa del pseudo-clock — 7.3.2
     int *clock = &sem[PSEUDOSEM];
     pcb_t *bloccato = NULL;
     

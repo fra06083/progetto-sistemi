@@ -32,23 +32,19 @@ void configureIRT(int line, int cpu) {
 */
 }
 void configurePassupVector() {
-passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
-for (int i = 0; i < NCPU; i++) {
-  passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
-  if (i == 0) {
-    passupvector->tlb_refill_stackPtr = KERNELSTACK;
-  } else {
-    passupvector->tlb_refill_stackPtr = RAMSTART + (64 * PAGESIZE) + (i * PAGESIZE);
+  passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
+  for (int i = 0; i < NCPU; i++) {
+    passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
+    if (i == 0) {
+      passupvector->tlb_refill_stackPtr = KERNELSTACK;
+      passupvector->exception_stackPtr = KERNELSTACK;
+    } else {
+      passupvector->tlb_refill_stackPtr = RAMSTART + (64 * PAGESIZE) + (i * PAGESIZE);
+      passupvector->exception_stackPtr = 0x20020000 + (i * PAGESIZE);
+    }
+    passupvector->exception_handler = (memaddr)exceptionHandler;
+    passupvector++; // qui avevamo sbagliato, dovevamo semplicemente incrementare il puntatore
   }
-  passupvector->exception_handler = (memaddr)exceptionHandler;
-  if (i == 0) {
-    passupvector->exception_stackPtr = KERNELSTACK;
-  } else {
-    passupvector->exception_stackPtr = 0x20020000 + (i * PAGESIZE);
-  }
-  passupvector++; // qui avevamo sbagliato, dovevamo semplicemente incrementare il puntatore
-}
-
 }
 
 

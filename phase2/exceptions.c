@@ -13,7 +13,6 @@ void uTLB_ExceptionHandler(){
 
 }
 void programTrapHandler(int cause, state_t* stato){
-  klog_print("ProgramTrapHandler");
   ACQUIRE_LOCK(&global_lock);
   int cpu_id = getPRID();
   pcb_t* current = current_process[cpu_id];
@@ -47,18 +46,15 @@ void programTrapHandler(int cause, state_t* stato){
 }
 void exceptionHandler()
 {
-    state_t *stato = GET_EXCEPTION_STATE_PTR(getPRID());
+    state_t *stato = GET_EXCEPTION_STATE_PTR(getPRID()); // prendiamo lo state dell'eccezione
     int getExcepCode = getCAUSE() & CAUSE_EXCCODE_MASK;
-    // Dobbiamo determinare se viene eseguito in Kernel-mode o User-mode
-    // qui mandiamo l'eccezione al gestore delle interruzioni
-    // codici eccezioni in cpu.h
-    if (CAUSE_IS_INT(getCAUSE())) {
-      interruptHandler(getExcepCode, stato);  // if the cause is an interrupt, call the interrupt handler
-    } else if (getExcepCode == EXC_ECU || getExcepCode == EXC_ECM) {
+    if (CAUSE_IS_INT(getCAUSE())) { // controlliamo se è un interrupt
+      interruptHandler(getExcepCode, stato); 
+    } else if (getExcepCode == EXC_ECU || getExcepCode == EXC_ECM) { // è una syscall
       syscallHandler(stato);
-    } else if (getExcepCode >= EXC_MOD && getExcepCode <= EXC_UTLBS) {
+    } else if (getExcepCode >= EXC_MOD && getExcepCode <= EXC_UTLBS) { // tra 24 e 28 PGFAULTEXCEPT
       programTrapHandler(PGFAULTEXCEPT, stato);
-    } else {
+    } else { // sennò è exception generico
       programTrapHandler(GENERALEXCEPT, stato);
     }
 }
@@ -78,14 +74,10 @@ void createProcess(state_t *c_state){
   new_process->p_s = *p_s;
   new_process->p_supportStruct = (support_t *) c_state->reg_a3;
   if (current_process[getPRID()] != NULL) {
-    klog_print("Processo figlio acceso\n");
     insertChild(current_process[getPRID()], new_process);
   }
   insertProcQ(&pcbReady, new_process); // va aggiunto alla ready queue!!
   process_count++;
-  klog_print("Processo creato con PID: ");
-  klog_print_dec(new_process->p_pid);
-  klog_print("\n");
   RELEASE_LOCK(&global_lock);
   c_state->reg_a0 = new_process->p_pid;
   c_state->pc_epc += 4; // lo dice nel punto dopo
@@ -126,8 +118,9 @@ void P(state_t* stato, unsigned int p_id) {
       pcb_t* pcbBlocked = current_process[p_id];
       ACQUIRE_LOCK(&global_lock);
       insertBlocked(semaforo, pcbBlocked);  // inserisci il processo nella lista dei bloccati
-      RELEASE_LOCK(&global_lock);
       block(stato, p_id, pcbBlocked);  // blocca il processo corrente
+      RELEASE_LOCK(&global_lock);
+      scheduler(); 
       return;  // ritorna e non continuare l'esecuzione del processo corrente
   } else if (*semaforo >= 1) {
       ACQUIRE_LOCK(&global_lock);
@@ -149,8 +142,9 @@ void V(state_t* stato, unsigned int p_id) {
   // Se il semaforo è maggiore di 1, blocca il processo chiamante (V bloccante)
     ACQUIRE_LOCK(&global_lock);
     insertBlocked(semaforo, current_process[p_id]);
-    RELEASE_LOCK(&global_lock);
     block(stato, p_id, current_process[p_id]);  // blocca il processo corrente
+    RELEASE_LOCK(&global_lock);
+    scheduler();
     return;  // ritorna e non continuare l'esecuzione del processo corrente
 
   } else {
@@ -173,9 +167,9 @@ void DoIO(state_t *stato, unsigned int p_id){
   int v = stato->reg_a2;                
 
   if (indirizzo_comando == NULL) {
-    RELEASE_LOCK(&global_lock);
     stato->reg_a0 = -1;  // ritorna -1 se nullo
     stato->pc_epc += 4;  // incrementa il program counter
+    RELEASE_LOCK(&global_lock);
     LDST(stato);
     return;
   }
@@ -183,9 +177,9 @@ void DoIO(state_t *stato, unsigned int p_id){
   pcb_t* pcb_attuale = current_process[p_id];
   int devIndex = findDevice(indirizzo_comando - 1);  // troviamo il dispositivo
   if (devIndex < 0) {
-    RELEASE_LOCK(&global_lock);
     stato->reg_a0 = -1;  // dispositivo non valido, -1 in reg a0
     stato->pc_epc += 4;  // antiloop
+    RELEASE_LOCK(&global_lock);
     LDST(stato);
     return;
   }
@@ -197,9 +191,9 @@ void DoIO(state_t *stato, unsigned int p_id){
   insertBlocked(semPTR, pcb_attuale);  // inseisci il processo nei bloccati
   current_process[p_id] = NULL;         //  rimuovi il processo corrente dalla lista dei processi attivi
   pcb_attuale->p_time = getTime(p_id);  // update tempo di esecuzione
-  RELEASE_LOCK(&global_lock);
 
   *indirizzo_comando = v;  // scrivi il valore nel dispositivo
+  RELEASE_LOCK(&global_lock);
   scheduler();
   return;  // ritorna alla funzione chiamante
 }
@@ -214,11 +208,13 @@ void GetCPUTime(state_t *stato, unsigned int p_id){
 }
 
 void WaitForClock(state_t *stato, unsigned int p_id){ 
-  int *clock = &sem[PSEUDOSEM]; // indirizzo del semaforo dello PseudoClock
   ACQUIRE_LOCK(&global_lock);
-  insertBlocked(clock, current_process[p_id]); // inserisci il processo nella lista dei bloccati (ASL), verrano sbloccati dall'interrupt 
-  RELEASE_LOCK(&global_lock);
+  int *clock = &sem[PSEUDOSEM]; // indirizzo del semaforo dello PseudoClock
+  insertBlocked(clock, current_process[p_id]); // inserisci il processo nella lista dei bloccati (ASL), verrano sbloccati dall'interrupt
   block(stato, p_id, current_process[p_id]); // blocca il processo corrente
+  RELEASE_LOCK(&global_lock);
+  scheduler(); // Chiamata allo scheduler per scegliere il prossimo processo
+
 }
 
 void GetSupportData(state_t *stato, unsigned int p_id){
@@ -247,8 +243,8 @@ void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
   } else { // parent è 0, quindi restituisco il pid del processo corrente
       stato->reg_a0 = currpcb->p_pid;
   }
-  RELEASE_LOCK(&global_lock);
   stato->pc_epc += 4;
+  RELEASE_LOCK(&global_lock);
   LDST(stato);
 }
 
@@ -276,7 +272,7 @@ switch (registro){
     break;
    case TERMPROCESS:
     terminateProcess(stato, stato->reg_a1);
-   break;
+    break;
    case PASSEREN:
     P(stato, p_id);
     break;
@@ -293,23 +289,16 @@ switch (registro){
    case CLOCKWAIT:
     WaitForClock(stato, p_id);
     break;
-  case GETSUPPORTPTR:
+   case GETSUPPORTPTR:
     GetSupportData(stato, p_id); 
     break;
-  case GETPROCESSID:
+   case GETPROCESSID:
     GetProcessId(stato, p_id); 
     break;
-  default: 
-    PANIC();
+   default: 
+    PANIC(); // Se non è nessuna delle syscall allora PANIC, non dovrebbe arrivare mai qui
     break;
    }
 }
-
-
-/*    
-    }
-
-    */
-
 
 

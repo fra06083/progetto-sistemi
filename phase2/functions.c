@@ -14,7 +14,7 @@ void killProcess(pcb_t * process){      // dobbiamo terminare il processo, poi l
         // Processo bloccato su semaforo: rimuovo e incremento il semaforo
         outBlocked(process);
         (* process -> p_semAdd)++;
-    } else if (outProcQ(& pcbReady, process) == NULL) {
+    } else if (outProcQ(&pcbReady, process) == NULL) {
         // Se il processo non è in ready queue e non è in blocked queue --> non gestibile
         return;
     }
@@ -22,7 +22,7 @@ void killProcess(pcb_t * process){      // dobbiamo terminare il processo, poi l
     if (process -> p_parent != NULL) {
         outChild(process);  // Rimuoviamo il processo dalla lista dei figli
     }
-    outProcQ(& pcbReady, process); // Rimozione dalla ready queue
+    outProcQ(&pcbReady, process); // Rimozione dalla ready queue
     freePcb(process); // Liberiamo il pcb nella free list
     if (process == current_process[getPRID()])
         current_process[getPRID()] = NULL;
@@ -56,11 +56,11 @@ pcb_t * findProcess(int pid) {
  * Ritorna il puntatore a 'dest'
  * Questa funzione è simile a quella della libreria standard, ma non usa i registri
  */
-void* memcpy(void* dest, const void* src, unsigned int len) {
-    char * d = dest;
-    const char* s = src;
-    while (len--) {           
-    * d++ = * s++; // Copia byte per byte           
+void *memcpy(void *dest, const void *src, unsigned int len)
+{
+    for (unsigned int i = 0; i < len; i++)
+    {
+        ((char*) dest)[i] = ((char*)src)[i]; // Copia byte per byte
     }
     return dest;
 }
@@ -83,18 +83,18 @@ Il calcolo dell’indice considera:
 
 // Funzione che trova il dispositivo a partire dall'indirizzo di comando
 int findDevice(memaddr * indirizzo_comando) { 
-  unsigned int offset = (unsigned int) indirizzo_comando - START_DEVREG; // calcoliamo l'offset
-
-  /* Problema: come troviamo l'indice del dispositivo?
+  unsigned int getDevices = (unsigned int) indirizzo_comando - START_DEVREG; // togliamo dall'indirizzo il base address
+  /* Problema: come troviamo l'indice del semaforo da bloccare?
    SOLUZIONE:
    In sostanza abbiamo:
-   32 dispositivi, 16 terminali, 2 sub-devices per terminale
-   così ritorniamo l'indice del dispositivo in questo modo
+   32 dispositivi, 8 terminali (2 sub-devices per terminale quindi 16 indici) + 1 PSEUDOCLOCK non contato in NSUPPSEM
+   noi abbiamo pensato che riserviamo i primi 32 indici per i dispositivi generici
+   e i successivi 16 per i terminali poi ritorniamo l'indice del dispositivo
   */
-  if (offset >= (DEVICES * 0x10)) {
-    return (DEVICES + ((offset - (DEVICES * 0x10)) / 0x8));
+  if (getDevices >= (DEVICES * 0x10)) { // allora è un terminale
+    return (DEVICES + ((getDevices - (DEVICES * 0x10)) / 0x8));
   } 
-    return (offset / 0x10);
+    return (getDevices / 0x10); // altrimenti è un dispositivo generico
 }
 // calcolo del tempo, prende il tempo corrente e lo sottrae al tempo di inizio
 cpu_t getTime(int p_id) {
@@ -110,14 +110,9 @@ cpu_t getTime(int p_id) {
 // e non lo teniamo bloccato per tutto il tempo
 
 void block(state_t * stato, int p_id, pcb_t * current){
-
-    stato -> pc_epc += 4;
-    current -> p_s = * stato;
-
+    stato->pc_epc += 4;
+    current->p_s = *stato;
     // Aggiorniamo il tempo di CPU usato prima di bloccare
-    current -> p_time += getTime(p_id);
-    ACQUIRE_LOCK(& global_lock);
+    current->p_time += getTime(p_id);
     current_process[p_id] = NULL;
-    RELEASE_LOCK(& global_lock);
-    scheduler(); // Chiamata allo scheduler per scegliere il prossimo processo
 }
