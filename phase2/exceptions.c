@@ -28,10 +28,10 @@ void programTrapHandler(int cause, state_t* stato){
     scheduler();
   }
 
-  RELEASE_LOCK(&global_lock);
   // Copia dell'eccezione
   current->p_supportStruct->sup_exceptState[cause] = *stato;
   context_t* context = &current->p_supportStruct->sup_exceptContext[cause];
+  RELEASE_LOCK(&global_lock);
   LDCXT(context->stackPtr, context->status, context->pc);
 /*
   This function allows a current process to change its operating mode,
@@ -78,9 +78,9 @@ void createProcess(state_t *c_state){
   }
   insertProcQ(&pcbReady, new_process); // va aggiunto alla ready queue!!
   process_count++;
-  RELEASE_LOCK(&global_lock);
   c_state->reg_a0 = new_process->p_pid;
   c_state->pc_epc += 4; // lo dice nel punto dopo
+  RELEASE_LOCK(&global_lock);
   LDST(c_state);
 }
 void terminateProcess(state_t *c_state, unsigned int p_id){
