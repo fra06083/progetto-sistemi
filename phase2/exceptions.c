@@ -191,8 +191,8 @@ void DoIO(state_t *stato, unsigned int p_id){
   insertBlocked(semPTR, pcb_attuale);  // inseisci il processo nei bloccati
   current_process[p_id] = NULL;         //  rimuovi il processo corrente dalla lista dei processi attivi
   pcb_attuale->p_time = getTime(p_id);  // update tempo di esecuzione
-RELEASE_LOCK(&global_lock);
   *indirizzo_comando = v;  // scrivi il valore nel dispositivo
+  RELEASE_LOCK(&global_lock);
   //ERA QUA IL RELEASE LOCK 
   scheduler();
   return;  // ritorna alla funzione chiamante
@@ -230,8 +230,8 @@ void GetSupportData(state_t *stato, unsigned int p_id){
 
 void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
   //Se il parent del pcb che ha fatto la syscall è NULL, allora in reg_a0 ci deve essere il suo PID
-  int parent = stato->reg_a1;
   ACQUIRE_LOCK(&global_lock);
+  int parent = stato->reg_a1;
   pcb_t *currpcb = current_process[p_id];
   if (parent) { // Dentro l'if allora il parent non era 0
       pcb_t* pcb_parent = currpcb->p_parent;
