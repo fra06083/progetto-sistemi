@@ -50,12 +50,16 @@ void exceptionHandler()
     int getExcepCode = getCAUSE() & CAUSE_EXCCODE_MASK;
     if (CAUSE_IS_INT(getCAUSE())) { // controlliamo se è un interrupt
       interruptHandler(getExcepCode, stato); 
-    } else if (getExcepCode == EXC_ECU || getExcepCode == EXC_ECM) { // è una syscall
-      syscallHandler(stato);
-    } else if (getExcepCode >= EXC_MOD && getExcepCode <= EXC_UTLBS) { // tra 24 e 28 PGFAULTEXCEPT
-      programTrapHandler(PGFAULTEXCEPT, stato);
-    } else { // sennò è exception generico
-      programTrapHandler(GENERALEXCEPT, stato);
+    } else {        
+      if (getExcepCode >= 24 && getExcepCode <= 28) {
+          programTrapHandler(PGFAULTEXCEPT, stato); // Page fault exception
+      } else if (getExcepCode == 8 || getExcepCode == 11) {
+          syscallHandler(stato); // syscall handler
+      } else if ((getExcepCode >= 0 && getExcepCode <= 7) || 
+                  getExcepCode == 9 || getExcepCode == 10 || 
+                 (getExcepCode >= 12 && getExcepCode <= 23)) {
+          programTrapHandler(GENERALEXCEPT, stato); // general exception
+        }
     }
 }
 
@@ -193,7 +197,6 @@ void DoIO(state_t *stato, unsigned int p_id){
   pcb_attuale->p_time = getTime(p_id);  // update tempo di esecuzione
   *indirizzo_comando = v;  // scrivi il valore nel dispositivo
   RELEASE_LOCK(&global_lock);
-  //ERA QUA IL RELEASE LOCK 
   scheduler();
   return;  // ritorna alla funzione chiamante
 }

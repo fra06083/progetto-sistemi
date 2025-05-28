@@ -65,10 +65,10 @@ void handleDeviceInterrupt(int intLine, int devNo) {
     if (intLine == 7) { // se è 7 abbiamo la gestione di I/O per i terminali
         termreg_t *term_reg = (termreg_t *)devAddr;
         unsigned int status_tr = term_reg->transm_status & 0xFF;
-        if (2 <= status_tr && status_tr <= OKCHARTRANS) { 
+        if (status_tr == OKCHARTRANS) { // Se il registro di trasmissione ha un carattere pronto 
           status = term_reg->transm_status;
           term_reg->transm_command = ACK;
-          devAddr += 0x8; // Abbiamo visto il calcolo dall'ultima tabella. 
+          devAddr += 0x8; // Abbiamo visto il calcolo dall'ultima tabella.
           // 0x8 è il passo per passare dal registro di trasmissione a quello di ricezione
         } else {  
           status = term_reg->recv_status;
@@ -105,10 +105,7 @@ void handleDeviceInterrupt(int intLine, int devNo) {
 void handlePLTInterrupt(state_t *stato) {
     ACQUIRE_LOCK(&global_lock);
     int cpuid = getPRID();
-
-    // Ricarica timer 
-    //Acknowledge del PLT
-    setTIMER(TIMESLICE * (*(cpu_t *)TIMESCALEADDR)); // non va
+    setTIMER(TIMESLICE * (*(cpu_t *)TIMESCALEADDR)); 
     // setTIMER(TIMESLICE);
     //Calcolo tempo utilizzato
     current_process[cpuid]->p_time += getTime(cpuid);   // calcoliamo il tempo di esecuzione

@@ -32,7 +32,7 @@ void configureIRT(int line, int cpu) {
 */
 }
 void configurePassupVector() {
-  passupvector_t *passupvector = (passupvector_t *)PASSUPVECTOR;
+  passupvector_t *passupvector = (passupvector_t *) PASSUPVECTOR;
   for (int i = 0; i < NCPU; i++) {
     passupvector->tlb_refill_handler = (memaddr)uTLB_RefillHandler;
     if (i == 0) {
