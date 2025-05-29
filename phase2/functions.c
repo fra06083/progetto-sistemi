@@ -10,16 +10,16 @@ void killProcess(pcb_t * process){      // dobbiamo terminare il processo, poi l
     }
 
     // Rimozione effettiva del processo
-    if (process -> p_semAdd != NULL) {
+    if (process->p_semAdd != NULL) {
         // Processo bloccato su semaforo: rimuovo e incremento il semaforo
         outBlocked(process);
-        (* process -> p_semAdd)++;
+        (*process->p_semAdd)++;
     } else if (outProcQ(&pcbReady, process) == NULL) {
         // Se il processo non è in ready queue e non è in blocked queue --> non gestibile
         return;
     }
     process_count--;
-    if (process -> p_parent != NULL) {
+    if (process->p_parent != NULL) {
         outChild(process);  // Rimuoviamo il processo dalla lista dei figli
     }
     outProcQ(&pcbReady, process); // Rimozione dalla ready queue
@@ -83,7 +83,7 @@ Il calcolo dell’indice considera:
 
 
 // Funzione che trova il dispositivo a partire dall'indirizzo di comando
-int findDevice(memaddr * indirizzo_comando) { 
+int findDevice(memaddr * indirizzo_comando) {
   unsigned int getDevices = (unsigned int) indirizzo_comando - START_DEVREG; // togliamo dall'indirizzo il base address
   /* Problema: come troviamo l'indice del semaforo da bloccare?
    SOLUZIONE:
@@ -100,9 +100,9 @@ int findDevice(memaddr * indirizzo_comando) {
 // calcolo del tempo, prende il tempo corrente e lo sottrae al tempo di inizio
 cpu_t getTime(int p_id) {
   cpu_t ctime;
-    STCK(ctime);
+  STCK(ctime);
   cpu_t time = ctime - start_time[p_id];// calcolo effettivo del tempo
-    return time;
+  return time;
 }
 
 // Funziona che blocca un processo: aggiorna lo stato, salva il tempo e chiama scheduler

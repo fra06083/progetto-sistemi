@@ -15,9 +15,8 @@ extern cpu_t start_time[NCPU];
 
 // Funzioni dichiarate
 void exceptionHandler();
-void programTrapHandler(int cause, state_t *stato);
+void passupordie(int cause, state_t *stato);
 void syscallHandler(state_t *stato);
-void uTLB_ExceptionHandler();
 void terminateProcess(state_t *c_state, unsigned int p_id);
 void createProcess(state_t *c_state);
 void P(state_t* stato, unsigned int p_id);

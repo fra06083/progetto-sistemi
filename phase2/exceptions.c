@@ -8,11 +8,11 @@ if the status register with saved_exception_state->status & MSTATUS_MPP_MASK see
 Rovelli’s thesis for more details.
 
 */
-void uTLB_ExceptionHandler(){
+//void uTLB_ExceptionHandler(){
 
 
-}
-void programTrapHandler(int cause, state_t* stato){
+//}
+void passupordie(int cause, state_t* stato){
   ACQUIRE_LOCK(&global_lock);
   int cpu_id = getPRID();
   pcb_t* current = current_process[cpu_id];
@@ -32,7 +32,8 @@ void programTrapHandler(int cause, state_t* stato){
   current->p_supportStruct->sup_exceptState[cause] = *stato;
   context_t* context = &current->p_supportStruct->sup_exceptContext[cause];
   RELEASE_LOCK(&global_lock);
-  LDCXT(context->stackPtr, context->status, context->pc);
+  LDCXT(context->stackPtr, context->status, context->pc); // qui carica il context
+  // quindi mettiamo il release lock prima
 /*
   This function allows a current process to change its operating mode,
  * turning on/off interrupt masks, turning on user mode, and at the same time
@@ -52,14 +53,14 @@ void exceptionHandler()
       interruptHandler(getExcepCode, stato); 
     } else {        
       if (getExcepCode >= 24 && getExcepCode <= 28) {
-          programTrapHandler(PGFAULTEXCEPT, stato); // Page fault exception
+          passupordie(PGFAULTEXCEPT, stato); // Page fault exception
       } else if (getExcepCode == 8 || getExcepCode == 11) {
           syscallHandler(stato); // syscall handler
       } else if ((getExcepCode >= 0 && getExcepCode <= 7) || 
                   getExcepCode == 9 || getExcepCode == 10 || 
                  (getExcepCode >= 12 && getExcepCode <= 23)) {
-          programTrapHandler(GENERALEXCEPT, stato); // general exception
-        }
+          passupordie(GENERALEXCEPT, stato); // general exception
+      }
     }
 }
 
@@ -262,9 +263,9 @@ RELEASE_LOCK on the Global Lock, in order to avoid race condition.
 int p_id = getPRID();
 int registro = stato->reg_a0;
 if (registro > 0){
-  programTrapHandler(GENERALEXCEPT, stato);
+  passupordie(GENERALEXCEPT, stato);
 }
-if (!(stato->status & MSTATUS_MPP_MASK)) { // SE E' IN USER MODE errore
+if (!(stato->status & MSTATUS_MPP_MASK)) { // E' in user mode (fase 3??)
   // allora dobbiamo fare un'azione descritta nella pagina 7 del pdf
   stato->cause = PRIVINSTR;
   exceptionHandler();

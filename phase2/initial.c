@@ -43,7 +43,7 @@ void configurePassupVector() {
       passupvector->exception_stackPtr = 0x20020000 + (i * PAGESIZE);
     }
     passupvector->exception_handler = (memaddr)exceptionHandler;
-    passupvector++; // qui avevamo sbagliato, dovevamo semplicemente incrementare il puntatore
+    passupvector++; // teoricamente dovremmo fare passupvector += i*0x10 + PASSUPVECTOR? però non funziona in questo modo
   }
 }
 
@@ -102,7 +102,7 @@ int main() {
   // Inizializzazione del sistema
   //punto 2.4
   initializeSystem();
-  global_lock = 0; // inizializziamo il lock globale a 1
+  global_lock = 0; // inizializziamo il lock globale a 0
   // Creazione del primo processo
   createFirstProcess();
   configureCPUs();
