@@ -50,7 +50,7 @@
 #define PASSEREN      -3
 #define VERHOGEN      -4
 #define DOIO          -5
-#define GETTIME       -6 // si chiama getcpu nel file
+#define GETTIME       -6
 #define CLOCKWAIT     -7
 #define GETSUPPORTPTR -8
 #define GETPROCESSID  -9
@@ -241,4 +241,3 @@
 /* Task Priority Register */
 #define TPR 0x10000408 
 #endif
-
