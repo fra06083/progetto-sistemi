@@ -6,12 +6,37 @@ Important: To determine if the Current Process was executing in kernel-mode or u
 one examines the Status register in the saved exception state. In particular, examine the MPP field
 if the status register with saved_exception_state->status & MSTATUS_MPP_MASK see section Dott.
 Rovelli’s thesis for more details.
-
 */
-//void uTLB_ExceptionHandler(){
 
+// il vpn è nei 31..12 bit di entry_hi, lo utilizzaimo come index della page table contenuta 
+// in p_supportStruct
+void uTLB_ExceptionHandler(){
+  int cpu_id= getPRID();
+  support_t *sup = (support_t *)current_process[cpu_id]->p_supportStruct;
 
-//}
+  unsigned int entry_hi = sup->sup_exceptState[0].entry_hi; //utilizzaimo sup_exceptState[0] perchè le eccezioni sono tbl 0 o general 1 exception
+  unsigned int vpn = entry_hi  >> 12; //estrae il VPN dall'entry_hi
+
+  int index;
+  if(vpn==0x8FFFF) index = 31; // Stack area
+  else index = vpn - 0x80000; // text e data area
+
+  if(index<0 || index>=USERPGTBLSIZE){
+    // Indice fuori dai limiti della page table
+    SYSCALL(TERMPROCESS,0, 0, 0); // Chiamata di sistema per gestire l'errore
+  }
+
+  pteEntry_t entry= sup->sup_privatePgTbl[index]; // Ottiene l'entry della page table
+
+  setENTRYHI(entry.pte_entryHI); // Imposta l'entry HI
+  setENTRYLO(entry.pte_entryLO); // Imposta l'entry LO
+  TLBWR(); // Scrive l'entry nella TLB
+
+  //restituisce il controllo al processo corrente
+  LDST(&sup->sup_exceptState[0]); 
+
+}
+
 void passupordie(int cause, state_t* stato){
   ACQUIRE_LOCK(&global_lock);
   int cpu_id = getPRID();
