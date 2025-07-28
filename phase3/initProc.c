@@ -6,15 +6,16 @@
 #include "../headers/const.h"
 #include "../headers/types.h"
 
-#define D 2 // Dirty bit
-#define V 1 // Valid bit
-#define G 0 // Global bit
+#define DBit 2 // Dirty bit
+#define VBit 1 // Valid bit
+#define GBit 0 // Global bit
 
 //Dichiarazioni (globali) delle variabili di fase 3 (qua)
 //N.B. Nella documentazione in alcuni casi possiamo scegliere di dichiararle localmente nei file! 
 
 support_t sup_struct[8]; //8 U-proc, per ogni  struttura di supporto 
-
+swap_t swap_pool[POOLSIZE]; // nel documento dice uprocmax * 2
+int swap_mutex = 0; // semaforo mutua esclusione pool
 void initPageTable(support_t *sup, int asid) {
     for (int i = 0; i < USERPGTBLSIZE; i++) {
         unsigned int vpn;
@@ -22,15 +23,15 @@ void initPageTable(support_t *sup, int asid) {
         else vpn=0xBFFFF;
 
         unsigned int entryHI = (vpn << 12) | (asid & 0xFFF); // Calcola l'entry HI con il VPN e l'ASID
-        unsigned int entryLO = (1 << D)|(0 << G) | (0 << V); // D=1, G=0, V=0
+        unsigned int entryLO = (1 << DBit)|(0 << GBit) | (0 << VBit); // D=1, G=0, V=0
 
         sup->sup_privatePgTbl[i].pte_entryHI = entryHI; // Inizializza l'entry HI
         sup->sup_privatePgTbl[i].pte_entryLO = entryLO; // Inizializza l'entry LO
     }
 }
 
-//Sta funzione non ho ancora ben capito dove e quando chiamarla, ma di base deve inizializzare le strutture che dichiariamo in questo file 
-void test(){
+// Questa funzione ci serve per testare i vari componenti della fase 3 
+void p3test(){
 
     for(int i = 0; i < UPROCMAX; i++) {
         sup_struct[i].sup_asid = i+1 ; // Setta ASID [1...8] per ogni processo utente

@@ -11,6 +11,7 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 (e.g. uTLB_RefillHandler)
 
 */
+#include "../phase3/initProc.c"
 #include "./headers/initial.h"
  //DEFINIZIONE DELLE VARIABILI GLOBALI
 // FUNZIONI DI CONFIGURAZIONE
@@ -25,11 +26,6 @@ void configureIRT(int line, int cpu) {
     }
   }
 
-  /*
-  volatile memaddr * indirizzo_IRT = (volatile memaddr * )(IRT_START + (line * WS));
-  * indirizzo_IRT |= IRT_RP_BIT_ON; // setta il bit di routing policy 1 << 28 in sostanza mette 1 a rp (|= non cancella la vecchia conf)
-  * indirizzo_IRT |= (1 << cpu); // setta il bit di destinazione, 1 << cpu ...001 | ...010 | ...100
-*/
 }
 void configurePassupVector() {
   passupvector_t *passupvector = (passupvector_t *) PASSUPVECTOR;
@@ -73,7 +69,7 @@ void createFirstProcess() {
   // Enable interrupts and kernel mode
   primo_processo->p_s.mie = MIE_ALL;
   primo_processo->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M;
-  primo_processo->p_s.pc_epc = (memaddr)test;
+  primo_processo->p_s.pc_epc = (memaddr)p3test;
   insertProcQ(&pcbReady, primo_processo);
   process_count++;
 }

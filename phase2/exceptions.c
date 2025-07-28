@@ -10,7 +10,7 @@ Rovelli’s thesis for more details.
 
 // il vpn è nei 31..12 bit di entry_hi, lo utilizzaimo come index della page table contenuta 
 // in p_supportStruct
-void uTLB_ExceptionHandler(){
+void uTLB_RefillHandler(){
   int cpu_id= getPRID();
   support_t *sup = (support_t *)current_process[cpu_id]->p_supportStruct;
 
@@ -100,7 +100,6 @@ void createProcess(state_t *c_state){
     return; // non possiamo creare un processo, quindi esce fuori dalla funzione
   }
   state_t *p_s = (state_t *)c_state->reg_a1;
-  // sbagliato new_process->p_s = c_state->reg_a1;
   new_process->p_s = *p_s;
   new_process->p_supportStruct = (support_t *) c_state->reg_a3;
   if (current_process[getPRID()] != NULL) {
