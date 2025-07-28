@@ -20,7 +20,7 @@ void uTLB_RefillHandler(){
   int index;
   if(vpn==0x8FFFF) index = 31; // Stack area
   else index = vpn - 0x80000; // text e data area
-
+ 
   if(index<0 || index>=USERPGTBLSIZE){
     // Indice fuori dai limiti della page table
     SYSCALL(TERMPROCESS,0, 0, 0); // Chiamata di sistema per gestire l'errore
@@ -140,9 +140,8 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
 void P(state_t* stato, unsigned int p_id) {
 
   int *semaforo = (int *) stato->reg_a1;
-  (*semaforo)--;  // decrementa il semaforo
 
-  if (*semaforo < 0) {
+  if (*semaforo == 0) {
       // Blocca il processo corrente
       pcb_t* pcbBlocked = current_process[p_id];
       ACQUIRE_LOCK(&global_lock);
@@ -151,11 +150,13 @@ void P(state_t* stato, unsigned int p_id) {
       RELEASE_LOCK(&global_lock);
       scheduler(); 
       return;  // ritorna e non continuare l'esecuzione del processo corrente
-  } else if (*semaforo >= 1) {
+  } else if (*semaforo == 1) {
       ACQUIRE_LOCK(&global_lock);
       pcb_t* processo_sbloccato = removeBlocked(semaforo);  // sblocca il processo in attesa
       if (processo_sbloccato != NULL) {
         insertProcQ(&pcbReady, processo_sbloccato);  // metti il processo nella coda dei ready
+      } else {
+        *semaforo = 0; // sennò imposta a 0
       }
       RELEASE_LOCK(&global_lock);
   }
@@ -166,8 +167,7 @@ void P(state_t* stato, unsigned int p_id) {
 void V(state_t* stato, unsigned int p_id) {
 
   int *semaforo = (int *) stato->reg_a1;
-  (*semaforo)++;  // incrementa il semaforo
-  if (*semaforo > 1){
+  if (*semaforo == 1){
   // Se il semaforo è maggiore di 1, blocca il processo chiamante (V bloccante)
     ACQUIRE_LOCK(&global_lock);
     insertBlocked(semaforo, current_process[p_id]);
@@ -176,12 +176,14 @@ void V(state_t* stato, unsigned int p_id) {
     scheduler();
     return;  // ritorna e non continuare l'esecuzione del processo corrente
 
-  } else {
+  } else if (*semaforo == 0) {
     // Sblocca il processo in attesa
     ACQUIRE_LOCK(&global_lock);
     pcb_t* processo_sbloccato = removeBlocked(semaforo);
     if (processo_sbloccato != NULL) {
         insertProcQ(&pcbReady, processo_sbloccato);  // metti il processo nella coda dei ready
+    } else {
+      *semaforo = 1;
     }
     RELEASE_LOCK(&global_lock);
   }
@@ -212,9 +214,8 @@ void DoIO(state_t *stato, unsigned int p_id){
     LDST(stato);
     return;
   }
-  /* P semplificata in i/o */
+  /* P semplificata in i/o modificato perché binari */
   int* semPTR = &sem[devIndex];  // prendi il semaforo del dispositivo
-  (*semPTR)--;   // decrementa il semaforo per bloccare il processo fino a quando l'operazione input/output è completata
   stato->pc_epc += 4; 
   pcb_attuale->p_s = *stato;
   insertBlocked(semPTR, pcb_attuale);  // inseisci il processo nei bloccati

@@ -13,7 +13,6 @@ void killProcess(pcb_t * process){      // dobbiamo terminare il processo, poi l
     if (process->p_semAdd != NULL) {
         // Processo bloccato su semaforo: rimuovo e incremento il semaforo
         outBlocked(process);
-        (*process->p_semAdd)++;
     } else if (outProcQ(&pcbReady, process) == NULL) {
         // Se il processo non è in ready queue e non è in blocked queue --> non gestibile
         return;
