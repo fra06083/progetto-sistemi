@@ -32,7 +32,7 @@ void generalExceptionHandler(){
 }
 // il vpn è nei 31..12 bit di entry_hi, lo utilizzaimo come index della page table contenuta 
 // in p_supportStruct
-void uTLB_RefillHandler(){
+void uTLB_RefillHandler(){      //TLB-Refill event handler 
   int cpu_id= getPRID();
   ACQUIRE_LOCK(&global_lock)
   support_t *sup = (support_t *)current_process[cpu_id]->p_supportStruct;
