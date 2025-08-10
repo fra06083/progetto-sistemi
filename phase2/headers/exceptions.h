@@ -14,6 +14,7 @@ extern struct list_head pcbReady;
 extern cpu_t start_time[NCPU];
 
 // Funzioni dichiarate
+void generalExceptionHandler(state_t *stato);
 void exceptionHandler();
 void passupordie(int cause, state_t *stato);
 void syscallHandler(state_t *stato);

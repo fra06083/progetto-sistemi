@@ -18,7 +18,6 @@
  #include "../headers/const.h"
  #include "../headers/types.h"
  #include <uriscv/liburiscv.h>
- 
  typedef unsigned int devregtr;
  
  /* hardware constants */
@@ -130,7 +129,7 @@
  
  /* TLB-Refill Handler */
  /* One can place debug calls here, but not calls to print */
- void uTLB_RefillHandler() {
+ /*void uTLB_RefillHandler() {
  
      int prid = getPRID();
      setENTRYHI(0x80000000);
@@ -139,7 +138,7 @@
  
      LDST(GET_EXCEPTION_STATE_PTR(prid));
  }
- 
+ */
  
  /*********************************************************************/
  /*                                                                   */

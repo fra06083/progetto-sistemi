@@ -8,6 +8,7 @@
 
 #include "dipendenze.h"
 
+#include "../../phase3/headers/vmSupport.h"
 #include "../functions.c"
 #include "../exceptions.c"
 #include "../interrupts.c"

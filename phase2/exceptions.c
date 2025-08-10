@@ -7,34 +7,10 @@ one examines the Status register in the saved exception state. In particular, ex
 if the status register with saved_exception_state->status & MSTATUS_MPP_MASK see section Dott.
 Rovelli’s thesis for more details.
 */
-// Punto 6/7
-void generalExceptionHandler(){
- support_t *p = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
- // determiniamo la causa
- state_t* state = &(supp->sup_exceptState[GENERALEXCEPT]);
- switch (state->reg_a0){
-  case TERMINATE:
-    // termina
-  break;
-  case WRITEPRINTER:
-    // writeprinter
-  break;
-  case WRITETERMINAL:
-  // WRITE TO TERMINAL
-  break;
-  case READTERMINAL:
-  break;
-  
-  default:
-  // program trap handler;
-  break;
- }
-}
-// il vpn è nei 31..12 bit di entry_hi, lo utilizzaimo come index della page table contenuta 
-// in p_supportStruct
+
 void uTLB_RefillHandler(){      //TLB-Refill event handler 
   int cpu_id= getPRID();
-  ACQUIRE_LOCK(&global_lock)
+  ACQUIRE_LOCK(&global_lock);
   support_t *sup = (support_t *)current_process[cpu_id]->p_supportStruct;
   unsigned int entry_hi = sup->sup_exceptState[0].entry_hi; //utilizzaimo sup_exceptState[0] perchè le eccezioni sono tbl 0 o general 1 exception
   unsigned int vpn = entry_hi  >> 12; //estrae il VPN dall'entry_hi

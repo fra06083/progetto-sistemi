@@ -11,8 +11,9 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 (e.g. uTLB_RefillHandler)
 
 */
-#include "../phase3/initProc.c"
 #include "./headers/initial.h"
+#include "./p2test.c" // Phase 2 test
+#include "../phase3/initProc.c" // Phase 3 test
  //DEFINIZIONE DELLE VARIABILI GLOBALI
 // FUNZIONI DI CONFIGURAZIONE
 void configureIRT(int line, int cpu) {
