@@ -14,6 +14,14 @@ extern int swap_mutex;
 #define VBit 1 // Valid bit
 
 
+static int next_frame_index = 0; // Static x FIFO round-robin
+
+int selectSwapFrame(){                                    // Page replacement FIFO (5.4)
+    int selected_frame = next_frame_index;
+    next_frame_index = (next_frame_index + 1) % POOLSIZE; // "increment this variable mod the size of the Swap Pool"
+    return selected_frame;
+}
+
 void acquire_mutexTable(int asid){
     SYSCALL(PASSEREN, (int)&swap_mutex, 0, 0);
     asidAcquired = asid;
@@ -54,8 +62,8 @@ void uTLB_ExceptionHandler() {
         } 
     }
     // ... continua punto 7         
-        //Frame i dalla swap_pool[]
-        unsigned int fr_index; //FCFS() recommended/RR();            Sezione 5.4 implementazione algoritmo di scheduling !!!!!!!!!!!!!!!!!!!!!
+        // Seleziona un frame dalla Swap Pool usando l'algoritmo di page replacement
+        unsigned int fr_index = selectSwapFrame();     //FCFS() recommended/RR();
         acquire_mutexTable(ASID); 
         if(swap_pool[fr_index].sw_asid != -1 ){                         //asid -1 -> frame libero 
             //frame occupato, lo libero (punto 9)
