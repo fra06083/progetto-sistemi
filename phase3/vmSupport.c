@@ -1,17 +1,14 @@
+#include "./headers/vmSupport.h"
 /*
 - TLB exception handler (The Pager) [Section 4].
 - function(s) for reading and writing flash devices
 - the Swap Pool table is local to this module
 */
-#include "../headers/const.h"
-#include "../headers/types.h"
-#include "uriscv/arch.h"
-#include "uriscv/cpu.h"
 extern int asidAcquired;
 extern int swap_mutex;
 
-
 #define VBit 1 // Valid bit
+#define MAXBLOCK 24  //SERVE???? Flash Device Block Numbers [0 ... MAXBLOCK - 1]
 
 
 static int next_frame_index = 0; // Static x FIFO round-robin
@@ -80,7 +77,36 @@ void uTLB_ExceptionHandler() {
             } 
             if(trovato) updateTLB(swap_pool[fr_index].sw_pte);
             //Punto 9 (c)
-            
-
+            //Block number = VPN k (corrispondono)
+            //Scrivere nel DATA0 field (del flash device) l'indirizzo fisico di partenza di un certo frame 
+            memaddr fr_addr = FRAMEPOOLSTART + (fr_index * PAGESIZE);                 //Sono impazzito a trovare la costante FRAMEPOOLSTART che non è MENZIONATA da nessuna parte (se non funziona comunque vuol dire che i frame partono nella RAM fisica dall'indirizzo 0x2002000)
+            dtpreg_t *flash_dev_x = (dtpreg_t *) DEV_REG_ADDR(IL_FLASH, asid_proc_x - 1);                      //RIVEDERE !!!!!!
+            flash_dev_x->data0 = fr_addr; 
+            //int ioStatus = SYSCALL(DOIO, int *commandAddr, int commandValue, 0);
+            int cmdVal = (k << 8) | FLASHWRITE;   
+            int ioStatus = SYSCALL(DOIO, (int*) flash_dev_x->command,(int) cmdVal, 0);       //flash_dev_x + 0x8 è il command field address
+            if(ioStatus != 1){    //Causa una TRAP se il comando non è andato a buon fine
+                //supportTrapHandler(sup_ptr); 
+            } 
+            //Read the Current Process content of logical page p (in pratica devi fare una read sul flash device) into frame i (fr_index e fr_address)
+            dtpreg_t *flash_dev_cp = (dtpreg_t *) DEV_REG_ADDR(IL_FLASH, ASID - 1); 
+            flash_dev_cp->data0 = fr_addr;
+            int commdVal = (p << 8) | FLASHREAD;
+            int ioStatus = SYSCALL(DOIO, (int*) flash_dev_cp->command, (int) commdVal, 0);      //flash_dev_cp + 0x8 è il command field address
+            if(ioStatus != 1){    //Causa una TRAP se il comando non è andato a buon fine (1 vedi uMPS3 doc)
+                //supportTrapHandler(sup_ptr); 
+            } 
+            //Punto 10
+            swap_pool[fr_index].sw_asid = ASID;                                  //Aggiorno la swap pool per dire che il frame i è occupato dal processo ASID
+            swap_pool[fr_index].sw_pageNo = p;                                   //Aggiorno la swap pool per dire che il frame i contiene la pagina p
+            swap_pool[fr_index].sw_pte = &(sup_ptr->sup_privatePgTbl[p]); 
+            swap_pool[fr_index].sw_pte->pte_entryHI = (ASID << VBit) | p;       //Accendo il Vbit     
+            //Devo aggiornare il PFN field nella pte_entry_LO della pagina p del processo ASID
+            sup_ptr->sup_privatePgTbl[p].pte_entryLO = (fr_index << PAGESIZE) | VBit; //Aggiorno la pte_entry_LO della pagina p del processo ASID      
+            //Aggiorno la TLB
+            updateTLB(sup_ptr->sup_privatePgTbl[p]);
+            //Punto 11
+            release_mutexTable(); // Rilascio il mutex della swap pool
+            LDST(state); // Ripristino lo stato del processo che ha causato il page fault     
         }
 }

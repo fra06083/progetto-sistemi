@@ -1,10 +1,9 @@
+#include "./headers/sysSupport.h"
 /* TODO: 
 - General exception handler [Section 6].
 - SYSCALL exception handler [Section 7].
 - Program Trap exception handler [Section 8].
 */
-#include "../headers/const.h"
-#include "../headers/types.h"
 // Punto 6/7
 void generalExceptionHandler(){
  support_t *p = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);

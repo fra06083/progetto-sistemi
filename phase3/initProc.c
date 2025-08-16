@@ -16,7 +16,8 @@ int masterSem = 0; // alla fine dice di gestirlo così
 state_t procStates[UPROCMAX];
 support_t procSupport[UPROCMAX];
 
-
+//Aggiunto 
+extern void uTLB_ExceptionHandler(); 
 
 support_t sup_struct[8]; //8 U-proc, per ogni  struttura di supporto 
 swap_t swap_pool[POOLSIZE]; // nel documento dice uprocmax * 2
@@ -111,4 +112,4 @@ void p3test(){
 
 
 
-
+    
