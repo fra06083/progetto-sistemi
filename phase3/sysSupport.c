@@ -6,7 +6,7 @@
 */
 // Punto 6/7
 void generalExceptionHandler(){
- support_t *p = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
+ support_t *supp = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
  // determiniamo la causa
  state_t* state = &(supp->sup_exceptState[GENERALEXCEPT]);
  switch (state->reg_a0){

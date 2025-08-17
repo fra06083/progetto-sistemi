@@ -4,14 +4,7 @@
 - function(s) for reading and writing flash devices
 - the Swap Pool table is local to this module
 */
-extern int asidAcquired;
-extern int swap_mutex;
 
-#define VBit 1 // Valid bit
-#define MAXBLOCK 24  //SERVE???? Flash Device Block Numbers [0 ... MAXBLOCK - 1]
-
-
-static int next_frame_index = 0; // Static x FIFO round-robin
 
 int selectSwapFrame(){                                    // Page replacement FIFO (5.4)
     int selected_frame = next_frame_index;
@@ -46,7 +39,8 @@ void uTLB_ExceptionHandler() {
     unsigned int ASID = sup_ptr->sup_asid;                                   // ASID: asid current process
     acquire_mutexTable(ASID);                                                // punto 4 (4.2 Pager)
     int trovato = FALSE;
-    for (int i = 0; i < POOLSIZE && !trovato; i++){
+    int i; 
+    for (i = 0; i < POOLSIZE && !trovato; i++){
         unsigned int sw_asid = swap_pool[i].sw_asid;
         if (sw_asid == ASID && swap_pool[i].sw_pageNo == p)
             trovato = TRUE;
@@ -92,8 +86,8 @@ void uTLB_ExceptionHandler() {
             dtpreg_t *flash_dev_cp = (dtpreg_t *) DEV_REG_ADDR(IL_FLASH, ASID - 1); 
             flash_dev_cp->data0 = fr_addr;
             int commdVal = (p << 8) | FLASHREAD;
-            int ioStatus = SYSCALL(DOIO, (int*) flash_dev_cp->command, (int) commdVal, 0);      //flash_dev_cp + 0x8 è il command field address
-            if(ioStatus != 1){    //Causa una TRAP se il comando non è andato a buon fine (1 vedi uMPS3 doc)
+            int ioStatus_2 = SYSCALL(DOIO, (int*) flash_dev_cp->command, (int) commdVal, 0);      //flash_dev_cp + 0x8 è il command field address
+            if(ioStatus_2 != 1){    //Causa una TRAP se il comando non è andato a buon fine (1 vedi uMPS3 doc)
                 //supportTrapHandler(sup_ptr); 
             } 
             //Punto 10

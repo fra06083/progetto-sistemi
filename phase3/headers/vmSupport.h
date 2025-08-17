@@ -4,7 +4,17 @@
 #include "../../headers/types.h"
 #include "uriscv/arch.h"
 #include "uriscv/cpu.h"
-// Funzioni dichiarate
+
+extern int asidAcquired;
+extern int swap_mutex;
+
+static int next_frame_index = 0; // Static x FIFO round-robin
+
+extern swap_t swap_pool[POOLSIZE]; // Swap Pool table
+
+#define VBit 1 // Valid bit
+#define MAXBLOCK 24  //SERVE???? Flash Device Block Numbers [0 ... MAXBLOCK - 1]
+
 void uTLB_ExceptionHandler();
 void acquire_mutexTable(int asid);
 void release_mutexTable();
