@@ -1,31 +1,10 @@
+#include "./headers/initProc.h"
  /*
  This module implements test N.B. usato come Istantiator process 
  - per inizializzazione vedi da sez 9 in poi 
  */
 
-#include "../headers/const.h"
-#include "../headers/types.h"
 
-#define DBit 2 // Dirty bit
-#define VBit 1 // Valid bit
-#define GBit 0 // Global bit
-
-//Dichiarazioni (globali) delle variabili di fase 3 (qua)
-//N.B. Nella documentazione in alcuni casi possiamo scegliere di dichiararle localmente nei file! 
-int masterSem = 0; // alla fine dice di gestirlo così
-state_t procStates[UPROCMAX];
-support_t procSupport[UPROCMAX];
-
-//Aggiunto 
-extern void uTLB_ExceptionHandler(); 
-
-support_t sup_struct[8]; //8 U-proc, per ogni  struttura di supporto 
-swap_t swap_pool[POOLSIZE]; // nel documento dice uprocmax * 2
-int swap_mutex = 1; // semaforo mutua esclusione pool
-int asidAcquired = -1; // asid che prende la mutua esclusione
-int supportSem[NSUPPSEM]; // Dal punto 9 ci servono dei semafori supporto dei device
-int supportSemAsid[UPROCMAX];
-#define STACKVPN (ENTRYHI_VPN_MASK >> VPNSHIFT)
 
 unsigned int getPageIndex(unsigned int entry_hi)
 {

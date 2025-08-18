@@ -6,6 +6,7 @@
 */
 
 
+
 int selectSwapFrame(){                                    // Page replacement FIFO (5.4)
     int selected_frame = next_frame_index;
     next_frame_index = (next_frame_index + 1) % POOLSIZE; // "increment this variable mod the size of the Swap Pool"
@@ -21,11 +22,19 @@ void release_mutexTable(){
     asidAcquired = -1;
 }
 
-void supportTrapHandler(support_t sup_ptr){         
-   //Section 8 ... 
-
-
+void updateTLB(pteEntry_t *pte) {
+    unsigned int entryHI = pte->pte_entryHI;
+    unsigned int entryLO = pte->pte_entryLO;
+    //Mutua esclusione non serve perchè ogni processore ha la sua TLB
+    //Istruzioni per scrivere nella TLB
+    setENTRYHI(entryHI); // Imposta l'entry HI
+    setENTRYLO(entryLO); // Imposta l'entry LO
+    TLBWR(); // Scrive l'entry nella TLB
 }
+
+//void supportTrapHandler(support_t sup_ptr) già dichiarato in sysSupport 
+   
+
 
 
 void uTLB_ExceptionHandler() {
@@ -98,7 +107,7 @@ void uTLB_ExceptionHandler() {
             //Devo aggiornare il PFN field nella pte_entry_LO della pagina p del processo ASID
             sup_ptr->sup_privatePgTbl[p].pte_entryLO = (fr_index << PAGESIZE) | VBit; //Aggiorno la pte_entry_LO della pagina p del processo ASID      
             //Aggiorno la TLB
-            updateTLB(sup_ptr->sup_privatePgTbl[p]);
+            updateTLB(&sup_ptr->sup_privatePgTbl[p]);
             //Punto 11
             release_mutexTable(); // Rilascio il mutex della swap pool
             LDST(state); // Ripristino lo stato del processo che ha causato il page fault     

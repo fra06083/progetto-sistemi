@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/francesco/Documents/progetto/progetto-sistemi/CMakeFiles /home/francesco/Documents/progetto/progetto-sistemi//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/davide/Documenti/progetto-sistemi/CMakeFiles //home/davide/Documenti/progetto-sistemi//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/francesco/Documents/progetto/progetto-sistemi/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/progetto-sistemi/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -286,60 +286,6 @@ phase2/scheduler.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/MultiPandOS.dir/build.make CMakeFiles/MultiPandOS.dir/phase2/scheduler.c.s
 .PHONY : phase2/scheduler.c.s
 
-# Aggiunti file phase3/ 
-# phase3/vmSupport.o: 
-phase3/vmSupport.o: phase3/vmSupport.c.o
-.PHONY : phase3/vmSupport.o
-
-# target to build an object file
-phase3/vmSupport.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/MultiPandOS.dir/build.make CMakeFiles/MultiPandOS.dir/phase3/vmSupport.c.o
-.PHONY : phase3/vmSupport.c.o
-
-phase3/vmSupport.i: phase3/vmSupport.c.i
-.PHONY : phase3/vmSupport.i
-
-# target to preprocess a source file
-phase3/vmSupport.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/MultiPandOS.dir/build.make CMakeFiles/MultiPandOS.dir/phase3/vmSupport.c.i
-.PHONY : phase3/vmSupport.c.i
-
-phase3/vmSupport.s: phase3/vmSupport.c.s
-.PHONY : phase3/vmSupport.s
-
-# target to generate assembly for a file
-phase3/vmSupport.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/MultiPandOS.dir/build.make CMakeFiles/MultiPandOS.dir/phase3/vmSupport.c.s
-.PHONY : phase3/vmSupport.c.s
-
-# phase3/sysSupport.o: 
-
-phase3/vmSupport.o: phase3/vmSupport.c.o
-.PHONY : phase3/vmSupport.o
-
-# target to build an object file
-phase3/vmSupport.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/MultiPandOS.dir/build.make CMakeFiles/MultiPandOS.dir/phase3/vmSupport.c.o
-.PHONY : phase3/vmSupport.c.o
-
-phase3/vmSupport.i: phase3/vmSupport.c.i
-.PHONY : phase3/vmSupport.i
-
-# target to preprocess a source file
-phase3/vmSupport.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/MultiPandOS.dir/build.make CMakeFiles/MultiPandOS.dir/phase3/vmSupport.c.i
-.PHONY : phase3/vmSupport.c.i
-
-phase3/vmSupport.s: phase3/vmSupport.c.s
-.PHONY : phase3/vmSupport.s
-
-# target to generate assembly for a file
-phase3/vmSupport.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/MultiPandOS.dir/build.make CMakeFiles/MultiPandOS.dir/phase3/vmSupport.c.s
-.PHONY : phase3/vmSupport.c.s
-
-# fine parte aggiunta file phase3/
-
 usr/local/share/uriscv/crtso.o: usr/local/share/uriscv/crtso.S.o
 .PHONY : usr/local/share/uriscv/crtso.o
 
@@ -385,12 +331,6 @@ help:
 	@echo "... phase2/scheduler.o"
 	@echo "... phase2/scheduler.i"
 	@echo "... phase2/scheduler.s"
-	@echo "... phase3/vmSupport.o"
-	@echo "... phase3/vmSupport.i"
-	@echo "... phase3/vmSupport.s"
-	@echo "... phase3/sysSupport.o"
-	@echo "... phase3/sysSupport.i"
-	@echo "... phase3/sysSupport.s"
 	@echo "... usr/local/share/uriscv/crtso.o"
 	@echo "... usr/local/share/uriscv/liburiscv.o"
 .PHONY : help
