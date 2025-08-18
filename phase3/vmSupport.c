@@ -87,7 +87,7 @@ void uTLB_ExceptionHandler() {
             flash_dev_x->data0 = fr_addr; 
             //int ioStatus = SYSCALL(DOIO, int *commandAddr, int commandValue, 0);
             int cmdVal = (k << 8) | FLASHWRITE;   
-            int ioStatus = SYSCALL(DOIO, (int*) flash_dev_x->command,(int) cmdVal, 0);       //flash_dev_x + 0x8 è il command field address
+            int ioStatus = SYSCALL(DOIO, flash_dev_x->command,(int) cmdVal, 0);       //flash_dev_x + 0x8 è il command field address
             if(ioStatus != 1){    //Causa una TRAP se il comando non è andato a buon fine
                 //supportTrapHandler(sup_ptr); 
             } 
@@ -95,7 +95,7 @@ void uTLB_ExceptionHandler() {
             dtpreg_t *flash_dev_cp = (dtpreg_t *) DEV_REG_ADDR(IL_FLASH, ASID - 1); 
             flash_dev_cp->data0 = fr_addr;
             int commdVal = (p << 8) | FLASHREAD;
-            int ioStatus_2 = SYSCALL(DOIO, (int*) flash_dev_cp->command, (int) commdVal, 0);      //flash_dev_cp + 0x8 è il command field address
+            int ioStatus_2 = SYSCALL(DOIO, flash_dev_cp->command, (int) commdVal, 0);      //flash_dev_cp + 0x8 è il command field address
             if(ioStatus_2 != 1){    //Causa una TRAP se il comando non è andato a buon fine (1 vedi uMPS3 doc)
                 //supportTrapHandler(sup_ptr); 
             } 

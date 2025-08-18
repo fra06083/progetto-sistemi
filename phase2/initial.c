@@ -12,8 +12,10 @@ handlers. Furthermore, this module will contain the provided skeleton TLB-Refill
 
 */
 #include "./headers/initial.h"
-#include "./p2test.c" // Phase 2 test
-#include "../phase3/initProc.c" // Phase 3 test
+extern void print(char *msg);
+extern void p3test();
+//#include "../phase3/headers/initProc.h" // Phase 3 test
+// #include "./p2test.c" // Phase 2 test
  //DEFINIZIONE DELLE VARIABILI GLOBALI
 // FUNZIONI DI CONFIGURAZIONE
 void configureIRT(int line, int cpu) {
@@ -61,7 +63,6 @@ void initializeSystem() {
   }
   LDIT(PSECOND);
 }
-
 // FUNZIONE CHE CREA IL PRIMO PROCESSO
 void createFirstProcess() {
   pcb_t *primo_processo = allocPcb();

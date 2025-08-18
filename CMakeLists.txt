@@ -18,7 +18,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-G 0 -nostdlib -T ${URISCV_SRC}/uriscvcore.ldscript 
 # add_executable(MultiPandOS phase1/pcb.c phase1/asl.c phase1/p1test.c ${URISCV_SRC}/crtso.S ${URISCV_SRC}/liburiscv.S)
 # FASE 2
 # add_executable(MultiPandOS phase2/p2test.c phase2/initial.c phase1/pcb.c phase1/asl.c ${URISCV_SRC}/crtso.S ${URISCV_SRC}/liburiscv.S)
-add_executable(MultiPandOS phase3/vmSupport.c phase3/sysSupport.c phase2/p2test.c phase2/initial.c ../phase1/pcb.c ../phase1/asl.c ${URISCV_SRC}/crtso.S ${URISCV_SRC}/liburiscv.S)
+add_executable(MultiPandOS phase3/initProc.c phase3/vmSupport.c phase3/sysSupport.c phase2/p2test.c phase2/initial.c phase1/pcb.c phase1/asl.c ${URISCV_SRC}/crtso.S ${URISCV_SRC}/liburiscv.S)
 add_custom_target(
 	MultiPandOSuRISCV ALL
 	COMMAND uriscv-elf2uriscv -k ${PROJECT_BINARY_DIR}/MultiPandOS

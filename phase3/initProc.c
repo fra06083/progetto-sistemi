@@ -5,6 +5,17 @@
  */
 
 
+//Dichiarazioni (globali) delle variabili di fase 3 (qua)
+//N.B. Nella documentazione in alcuni casi possiamo scegliere di dichiararle localmente nei file! 
+int masterSem = 0; // alla fine dice di gestirlo così
+state_t procStates[UPROCMAX];
+support_t procSupport[UPROCMAX];
+support_t sup_struct[8]; //8 U-proc, per ogni  struttura di supporto 
+swap_t swap_pool[POOLSIZE]; // nel documento dice uprocmax * 2
+int swap_mutex = 1; // semaforo mutua esclusione pool
+int asidAcquired = -1; // asid che prende la mutua esclusione
+int supportSem[NSUPPSEM]; // Dal punto 9 ci servono dei semafori supporto dei device
+int supportSemAsid[UPROCMAX];
 
 unsigned int getPageIndex(unsigned int entry_hi)
 {

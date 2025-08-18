@@ -19,7 +19,7 @@ void SYS3(state_t *stato){
           SYS2();
           return; 
       }
-      int retStatus = SYSCALL(WRITEPRINTER, VAddr_first_char, str_len, 0);
+      int retStatus = SYSCALL(WRITEPRINTER, (unsigned int) VAddr_first_char, str_len, 0);
       //Devo vedere che tipo di errore mi ritorna, se è diverso da 1 allora c'è stato un errore 
       if(retStatus != 1) {
           stato->reg_a0 = -retStatus;

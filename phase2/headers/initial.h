@@ -3,6 +3,7 @@
 
 #include "../../phase1/headers/pcb.h"
 #include "../../phase1/headers/asl.h"
+#include "../../headers/const.h"
 #include "../../klog.c"
 
 #include "dipendenze.h"
@@ -35,7 +36,9 @@ cpu_t start_time[NCPU]; // tempo di inizio di ogni processo
 // extern perché sennò darebbe errore il compilatore
 // extern fa capire solamente che la funzione è definita in un altro file
 extern void test();
+extern void p3test();
 extern void uTLB_RefillHandler();
+extern void uTLB_ExceptionHandler();
 // NOSTRE FUNZIONI
 void initializeSystem();
 void configurePassupVector();

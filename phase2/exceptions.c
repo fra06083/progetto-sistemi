@@ -8,7 +8,7 @@ if the status register with saved_exception_state->status & MSTATUS_MPP_MASK see
 Rovelli’s thesis for more details.
 */
 
-extern void uTLB_RefillHandler(){      //TLB-Refill event handler 
+void uTLB_RefillHandler(){      //TLB-Refill event handler 
   int cpu_id= getPRID();
   ACQUIRE_LOCK(&global_lock);
   support_t *sup = (support_t *)current_process[cpu_id]->p_supportStruct;
