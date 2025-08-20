@@ -13,7 +13,7 @@ extern swap_t swap_pool[POOLSIZE]; // Swap Pool table
 #define VBit 1 // Valid bit
 #define MAXBLOCK 24  //SERVE???? Flash Device Block Numbers [0 ... MAXBLOCK - 1]
 void updateTLB(pteEntry_t *pte); // Function to update the TLB with a new PTE entry
-extern void supportTrapHandler(support_t sup_ptr);
+extern void supportTrapHandler(support_t *sup_ptr);
 void uTLB_ExceptionHandler();
 int selectSwapFrame();
 void acquire_mutexTable(int asid);

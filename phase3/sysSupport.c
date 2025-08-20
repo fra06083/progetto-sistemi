@@ -32,33 +32,54 @@ void SYS3(state_t *stato){
 
 
 
+
 void generalExceptionHandler(){
- support_t *supp = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
- // determiniamo la causa
- state_t* state = &(supp->sup_exceptState[GENERALEXCEPT]);
- switch (state->reg_a0){
-  case TERMINATE:   //SYS2
-    SYS2();
-  break;
-  case WRITEPRINTER:
-    SYS3(state);
-  break;
-  case WRITETERMINAL:
-  // WRITE TO TERMINAL
-  break;
-  case READTERMINAL:
-  break;
-  
-  default:
-  // program trap handler;
-  break;
- }
+    support_t *sup = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
+    // determiniamo la causa
+    state_t* state = &(sup->sup_exceptState[GENERALEXCEPT]);
+
+    //Decodifica l'eccezione: se NON è SYSCALL -> Program Trap 
+    unsigned int exccode = (state->cause & GETEXECCODE) >> CAUSESHIFT;  // mask/shift definiti in const.h
+    if (exccode != SYSEXCEPTION) {
+        supportTrapHandler(sup);   // Program Trap handler 
+        return;                    // non proseguire nel dispatch SYSCALL
+    }
+
+    //incremento così passo all'istruzione dopo la syscall (cap7)
+    state->pc_epc += 4; //incremento di 4 il program counter che ha causato l'eccezione
+
+    switch (state->reg_a0){
+        case TERMINATE:   // SYS2
+            SYS2();
+            break;
+
+        case WRITEPRINTER: // SYS3
+            SYS3(state);
+            break;
+
+        case WRITETERMINAL: // SYS4
+            // TODO: WRITE TO TERMINAL
+            break;
+
+        case READTERMINAL:  // SYS5
+            // TODO: READ FROM TERMINAL
+            break;
+
+        default:
+            supportTrapHandler(sup);
+            break;
+    }
 }
-// il vpn è nei 31..12 bit di entry_hi, lo utilizzaimo come index della page table contenuta 
-// in p_supportStruct
-
-void supportTrapHandler(support_t sup_ptr){         
-   //Section 8 ... 
 
 
+
+void supportTrapHandler(support_t *sup_ptr){         
+  extern int swap_mutex;
+  extern int asidAcquired;
+  
+  if(asidAcquired== sup_ptr->sup_asid) {
+    SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0); //NSYS4
+    asidAcquired = -1;
+  }
+  SYSCALL(TERMINATE, 0, 0, 0); // Termina il processo corrente 
 }

@@ -4,5 +4,5 @@
 #include "vmSupport.h"
 
 void generalExceptionHandler();
-void supportTrapHandler(support_t sup_ptr);      //definito qui (usato con extern in vmSupport)
+void supportTrapHandler(support_t *sup_ptr);      //definito qui (usato con extern in vmSupport)
 #endif

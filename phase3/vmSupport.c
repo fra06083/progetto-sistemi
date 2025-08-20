@@ -1,4 +1,5 @@
 #include "./headers/vmSupport.h"
+
 /*
 - TLB exception handler (The Pager) [Section 4].
 - function(s) for reading and writing flash devices
@@ -32,17 +33,15 @@ void updateTLB(pteEntry_t *pte) {
     TLBWR(); // Scrive l'entry nella TLB
 }
 
-//void supportTrapHandler(support_t sup_ptr) già dichiarato in sysSupport 
    
-
-
 
 void uTLB_ExceptionHandler() {
     support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       //NSYS8 (pulire commenti, uso come placeholder)
     state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)
 
     if (state->cause == EXC_MOD) { // punto 4.2
-      //  supportTrapHandler(supp->sup_asid); da creare
+      supportTrapHandler(sup_ptr);
+      return; // Non proseguire nel dispatch SYSCALL 
     }
     unsigned int p = getPageIndex(state->entry_hi);                          // punto 5 (4.2 Pager)
     unsigned int ASID = sup_ptr->sup_asid;                                   // ASID: asid current process
@@ -89,7 +88,8 @@ void uTLB_ExceptionHandler() {
             int cmdVal = (k << 8) | FLASHWRITE;   
             int ioStatus = SYSCALL(DOIO, flash_dev_x->command,(int) cmdVal, 0);       //flash_dev_x + 0x8 è il command field address
             if(ioStatus != 1){    //Causa una TRAP se il comando non è andato a buon fine
-                //supportTrapHandler(sup_ptr); 
+                supportTrapHandler(sup_ptr); 
+                return;
             } 
             //Read the Current Process content of logical page p (in pratica devi fare una read sul flash device) into frame i (fr_index e fr_address)
             dtpreg_t *flash_dev_cp = (dtpreg_t *) DEV_REG_ADDR(IL_FLASH, ASID - 1); 
@@ -97,7 +97,8 @@ void uTLB_ExceptionHandler() {
             int commdVal = (p << 8) | FLASHREAD;
             int ioStatus_2 = SYSCALL(DOIO, flash_dev_cp->command, (int) commdVal, 0);      //flash_dev_cp + 0x8 è il command field address
             if(ioStatus_2 != 1){    //Causa una TRAP se il comando non è andato a buon fine (1 vedi uMPS3 doc)
-                //supportTrapHandler(sup_ptr); 
+                supportTrapHandler(sup_ptr); 
+                return;
             } 
             //Punto 10
             swap_pool[fr_index].sw_asid = ASID;                                  //Aggiorno la swap pool per dire che il frame i è occupato dal processo ASID
