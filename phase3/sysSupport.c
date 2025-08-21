@@ -85,17 +85,38 @@ void writeDevice(state_t *stato, int asid, int type){
     LDST(stato); // ripristina lo stato del processo corrente (va messo in teoria anche se non scritto perchè il processo viene sospeso)
 }
 
-
+// riceve da terminale e salva su address
+int inputFromTerminal(char* addr, int term) {
+    termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
+    int str_len = 0;
+    while (1) { // reads 1 character at a time until a newline occurs
+        int status = SYSCALL(DOIO, (int)&devReg->recv_command, RECEIVECHAR, 0);
+        if ((status & 0xFF) != CHARRECV) {
+            return -status;
+        }
+        char character = (char)(status >> 8); // prende il carattere, shiftato di 8 || guardare il print per capire come funziona e lo solva in addr
+        *addr = character;
+        addr++;
+        str_len++;
+        if (character == '\n') break;
+    }
+    return str_len;
+}
 void readTerminal(state_t* stato){
-    char *Vaddr_start_buff = (char *) stato->reg_a1; 
+    char *vAddr = (char *) stato->reg_a1; 
     if(Vaddr_start_buff < (char *) UPROCSTARTADDR || Vaddr_start_buff >= (char *) USERSTACKTOP) {
         TerminateSYS(asidAcquired);
         return; 
     }
-    int retStatus = SYSCALL(READTERMINAL, (unsigned int) Vaddr_start_buff, 0, 0); 
-    if(retStatus != 5){
-        stato->reg_a0 = -retStatus; 
-    }
+    int devNo = asid-1;
+    int deviceIndex = findDevice((memaddr*) stato->reg_a1);
+    acquireDevice(asid, deviceIndex);
+    int status = inputTerminal(vAddr, devNo);
+    releaseDevice(asid, deviceIndex);
+    stato->reg_a0 = status;
+   // if(status != 5){
+   //     stato->reg_a0 = -retStatus; 
+   // }
     //Qua dice che in a0 deve esserci il numero dei caratteri della stringa, qua come si ricava? 
     stato->pc_epc += 4; 
     LDST(stato);
