@@ -17,6 +17,25 @@ int asidAcquired; // asid che prende la mutua esclusione
 int supportSem[NSUPPSEM]; // Dal punto 9 ci servono dei semafori supporto dei device
 int supportSemAsid[UPROCMAX];
 
+void acquireDevice(int asid, int devIndex) {
+    int* sem = &supportSem[devIndex];
+    SYSCALL(PASSEREN, (int)sem, 0, 0);
+    supportSemAsid[asid-1] = devIndex;
+}
+void releaseDevice(int asid, int deviceIndex) {
+    int* sem = &supportSem[deviceIndex];
+    supportSemAsid[asid-1] = -1;
+    SYSCALL(VERHOGEN, (int)sem, 0, 0);
+}
+
+void acquireSwapPoolTable(int asid) {
+    SYSCALL(PASSEREN, (int)&swap_mutex, 0, 0);
+    asidAcquired = asid;
+}
+void releaseSwapPoolTable() {
+    asidAcquired = -1;
+    SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0);
+}
 unsigned int getPageIndex(unsigned int entry_hi)
 {
     unsigned int vpn = ENTRYHI_GET_VPN(entry_hi);
@@ -27,9 +46,6 @@ unsigned int getPageIndex(unsigned int entry_hi)
     }
 }
 
-void initPageTable(support_t *sup, int asid) {
-    // FIXME: lasciata vuota, usiamo il ciclo più sotto per inizializzare tutte le entry
-}
 
 // Questa funzione ci serve per testare i vari componenti della fase 3 
 extern void klog_print(const char *msg);
@@ -86,8 +102,8 @@ void p3test(){
         //initialization prior to request the CreateProcess service
         for (int j = 0; j < USERPGTBLSIZE; j++) {
             unsigned int vpn;
-            vpn = (j == USERPGTBLSIZE-1) ? STACKVPN : (0x80000 + j); // FIX: uso j, non i
-
+            vpn = (j != USERPGTBLSIZE-1) ? KUSEG | (j << VPNSHIFT) : 0xBFFFF000; // FIX: uso j, non i
+            // se è uguale calcolo il suo indirizzo, sennò valore finale 0xBFFFF000
             unsigned int entryHI = vpn | (ASID << ASIDSHIFT); // FIX: shift dell’ASID
             unsigned int entryLO = DIRTYON; 
 

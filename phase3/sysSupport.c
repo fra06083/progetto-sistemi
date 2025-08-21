@@ -5,18 +5,30 @@
 - Program Trap exception handler [Section 8].
 */
 // Punto 6/7
-void SYS2() {
-   SYSCALL(TERMINATE, 0, 0, 0); // Termina il processo corrente (dopo che il valore è stato messo in reg_a0, esegui la SYSCALL)
+extern int masterSem;
+void TerminateSYS(int asidTerminate) {
+    if (asidAcquired != asidTerminate) {
+        acquireSwapPoolTable(asidTerminate); // va fatto in mutuaesclusione!!
+    }
+    releaseSwapPoolTable();
+
+    int deviceIndex = supportSemAsid[asidTerminate-1]; // release device if the uprocs was holding it
+    if (deviceIndex != -1) {
+        releaseDevice(asidTerminate, deviceIndex);
+    }
+
+    SYSCALL(VERHOGEN, (int)&masterSem, 0, 0); // dobbiamo fare una V al masterSem quando terminiamo un processo
+    SYSCALL(TERMINATE, 0, 0, 0); // Termina il processo corrente (dopo che il valore è stato messo in reg_a0, esegui la SYSCALL)
     //E' un wrapper, non devo fare altro
 }
 
-void SYS3(state_t *stato){
+void writePrinter(state_t *stato){
     char* VAddr_first_char = (char *) stato->reg_a1; 
     int str_len = stato->reg_a2;
     //Controllo che l'indirizzo virtuale del primo char sia entro il logical U-Proc Address Space, non ecceda la lunghezza del  e che la lunghezza della stringa sia accettabile
     //In teoria nel logical U-Proc Address Space è limitato da sotto da UPROCSTARTADDR e sopra da USERSTACKTOP 
     if((str_len < 0 || str_len > 128) || VAddr_first_char < (char *) UPROCSTARTADDR || VAddr_first_char >= (char *) USERSTACKTOP) {
-        SYS2();
+        TerminateSYS(asidAcquired);
         return; 
     }
     int retStatus = SYSCALL(WRITEPRINTER, (unsigned int) VAddr_first_char, str_len, 0);
@@ -30,11 +42,11 @@ void SYS3(state_t *stato){
     LDST(stato); // ripristina lo stato del processo corrente (va messo in teoria anche se non scritto perchè il processo viene sospeso)
 }
 
-void SYS4(state_t *stato){
-    char *VAddr_first_char = (char *) stato->reg_a1; 
+void writeTerminal(state_t *stato){
+    char *VAddr_first_char = (char *) stato->reg_a1;
     int str_len = stato->reg_a2;
     if((str_len < 0 || str_len > 128) || VAddr_first_char < (char *) UPROCSTARTADDR || VAddr_first_char >= (char *) USERSTACKTOP) {
-        SYS2();
+        TerminateSYS(asidAcquired);
         return; 
     }
     int retStatus = SYSCALL(WRITETERMINAL, (unsigned int) VAddr_first_char, str_len, 0);
@@ -48,10 +60,10 @@ void SYS4(state_t *stato){
 }
 
 
-void SYS5(state_t* stato){
+void readTerminal(state_t* stato){
     char *Vaddr_start_buff = (char *) stato->reg_a1; 
     if(Vaddr_start_buff < (char *) UPROCSTARTADDR || Vaddr_start_buff >= (char *) USERSTACKTOP) {
-        SYS2();
+        TerminateSYS(asidAcquired);
         return; 
     }
     int retStatus = SYSCALL(READTERMINAL, (unsigned int) Vaddr_start_buff, 0, 0); 
@@ -83,19 +95,20 @@ void generalExceptionHandler(){
 
     switch (state->reg_a0){
         case TERMINATE:   // SYS2
-            SYS2();
+            int asid = sup->sup_asid;
+            TerminateSYS(asid);
             break;
 
         case WRITEPRINTER: // SYS3
-            SYS3(state);
+            writePrinter(state);
             break;
 
         case WRITETERMINAL: // SYS4
-            SYS4(state);
+            writeTerminal(state);
             break;
 
         case READTERMINAL:  // SYS5
-            SYS5(state); 
+            readTerminal(state); 
             break;
 
         default:
