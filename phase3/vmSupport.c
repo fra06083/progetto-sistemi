@@ -1,5 +1,5 @@
 #include "./headers/vmSupport.h"
-
+extern void klog_print(const char *msg);
 /*
 - TLB exception handler (The Pager) [Section 4].
 - function(s) for reading and writing flash devices
@@ -36,6 +36,7 @@ void updateTLB(pteEntry_t *pte) {
    
 
 void uTLB_ExceptionHandler() {
+    klog_print("uTLB ExceptionHandler;");
     support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       //NSYS8 (pulire commenti, uso come placeholder)
     state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)
 

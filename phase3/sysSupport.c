@@ -19,7 +19,7 @@ void SYS3(state_t *stato){
         SYS2();
         return; 
     }
-    int retStatus = SYSCALL(WRITEPRINTER, &VAddr_first_char, str_len, 0);
+    int retStatus = SYSCALL(WRITEPRINTER, (unsigned int) VAddr_first_char, str_len, 0);
     //Devo vedere che tipo di errore mi ritorna, se è diverso da 1 allora c'è stato un errore 
     if(retStatus != 1) {
         stato->reg_a0 = -retStatus;
@@ -37,7 +37,7 @@ void SYS4(state_t *stato){
         SYS2();
         return; 
     }
-    int retStatus = SYSCALL(WRITETERMINAL, &VAddr_first_char, str_len, 0);
+    int retStatus = SYSCALL(WRITETERMINAL, (unsigned int) VAddr_first_char, str_len, 0);
     if(retStatus != 5){
         stato->reg_a0 = -retStatus; 
     }
@@ -50,12 +50,11 @@ void SYS4(state_t *stato){
 
 void SYS5(state_t* stato){
     char *Vaddr_start_buff = (char *) stato->reg_a1; 
-    int retStatus = SYSCALL(READTERMINAL, &Vaddr_start_buff, 0, 0);
     if(Vaddr_start_buff < (char *) UPROCSTARTADDR || Vaddr_start_buff >= (char *) USERSTACKTOP) {
         SYS2();
         return; 
     }
-    int retStatus = SYSCALL(READTERMINAL, &Vaddr_start_buff, 0, 0); 
+    int retStatus = SYSCALL(READTERMINAL, (unsigned int) Vaddr_start_buff, 0, 0); 
     if(retStatus != 5){
         stato->reg_a0 = -retStatus; 
     }

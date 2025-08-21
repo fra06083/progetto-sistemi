@@ -18,17 +18,20 @@ extern void p3test();
 // #include "./p2test.c" // Phase 2 test
  //DEFINIZIONE DELLE VARIABILI GLOBALI
 // FUNZIONI DI CONFIGURAZIONE
-void configureIRT(int line, int cpu) {
-  for (int line = 0; line < N_INTERRUPT_LINES; line++) {  // dobbiamo farlo per ogni linea di interruzione
-    for (int dev = 0; dev < N_DEV_PER_IL; dev++) {        // per ogni device
-      memaddr *irt_entry = (memaddr *)IRT_ENTRY(line, dev);
-      *irt_entry = IRT_RP_BIT_ON;                                                
-      for (int cpu_id = 0; cpu_id < NCPU; cpu_id++){
-        *irt_entry |= (1U << cpu_id); // setta il bit di destinazione, 1 << cpu ...001 | ...010 | ...100; in fase finale era sbagliata prima
-      }  
+void configureIRT() {
+    // Calcolo la maschera dei core (es. con 2 CPU -> 0b11)
+    unsigned int cpu_mask = 0;
+    for (int cpu = 0; cpu < NCPU; cpu++) {
+        cpu_mask |= (1U << cpu);
     }
-  }
 
+    // Inizializzo tutte le entry della IRT
+    for (int i = 0; i < IRT_NUM_ENTRY; i++) {
+        memaddr *irt_entry = (memaddr *)(IRT_START + i * WS);
+        *irt_entry = 0;                // azzero l’entry
+        *irt_entry |= IRT_RP_BIT_ON;   // bit "RP"
+        *irt_entry |= cpu_mask;        // instrado a tutte le CPU
+    }
 }
 void configurePassupVector() {
   passupvector_t *passupvector = (passupvector_t *) PASSUPVECTOR;
@@ -77,10 +80,7 @@ void createFirstProcess() {
 }
 
 void configureCPUs() {
-  for (int i = 0; i < IRT_NUM_ENTRY; i++) {
-    int cpucounter = (i / (IRT_NUM_ENTRY / NCPU)) % NCPU;
-    configureIRT(i, cpucounter);
-  }
+  configureIRT();
  // *((memaddr *)TPR) = 0;
   state_t stato;
   stato.status = MSTATUS_MPP_M;
