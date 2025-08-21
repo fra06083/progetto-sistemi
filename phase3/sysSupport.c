@@ -111,7 +111,7 @@ void readTerminal(state_t* stato){
     int devNo = asid-1;
     int deviceIndex = findDevice((memaddr*) stato->reg_a1);
     acquireDevice(asid, deviceIndex);
-    int status = inputTerminal(vAddr, devNo);
+    int status = inputFromTerminal(vAddr, devNo);
     releaseDevice(asid, deviceIndex);
     stato->reg_a0 = status;
    // if(status != 5){
