@@ -89,12 +89,12 @@ void writeDevice(state_t *stato, int asid, int type){
 int inputFromTerminal(char* addr, int term) {
     termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
     int str_len = 0;
-    while (1) { // reads 1 character at a time until a newline occurs
+    while (1) { // legge finché non \n!!!
         int status = SYSCALL(DOIO, (int)&devReg->recv_command, RECEIVECHAR, 0);
         if ((status & 0xFF) != CHARRECV) {
             return -status;
         }
-        char character = (char)(status >> 8); // prende il carattere, shiftato di 8 || guardare il print per capire come funziona e lo solva in addr
+        char character = (char)(status >> 8); // prende il carattere, shiftato di 8 || guardare il print per capire come funziona e lo salva in addr
         *addr = character;
         addr++;
         str_len++;
