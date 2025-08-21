@@ -2,6 +2,7 @@
 #define SYS_SUPPORT_H
 #include "initProc.h"
 #include "vmSupport.h"
+#include "../../phase2/headers/functions.h"
 extern int masterSem; // alla fine dice di gestirlo così
 extern state_t procStates[UPROCMAX];
 extern support_t procSupport[UPROCMAX];

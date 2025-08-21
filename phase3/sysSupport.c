@@ -21,42 +21,68 @@ void TerminateSYS(int asidTerminate) {
     SYSCALL(TERMINATE, 0, 0, 0); // Termina il processo corrente (dopo che il valore è stato messo in reg_a0, esegui la SYSCALL)
     //E' un wrapper, non devo fare altro
 }
+// print di p2test, scrive nel terminale term, msg di lunghezza lenMsg
+int printTerminal(char* msg, int lenMsg, int term) {
+    termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
+    unsigned int status;
+    unsigned int value;
+    int charSent = 0;
+    while (charSent < lenMsg) { // loop di un carattere alla volta; come visto in print di p2test
+        value = PRINTCHR | (((unsigned int)*msg) << 8);
+        status = SYSCALL(DOIO, (int)&devReg->transm_command, (int)value, 0);
+        if ((status & 0xFF) != CHARRECV) {
+            return -status;
+        }
+        msg++;
+        charSent++;
+    }
+    return charSent;
+}
+int printPrinter(char* msg, int length, int devNo) {
+    dtpreg_t* devReg = (dtpreg_t*)DEV_REG_ADDR(IL_FLASH, devNo);
+    unsigned int status;
+    unsigned int value;
+    int charSent = 0;
+    while (charSent < length) { // loop di un carattere alla volta; come visto in print di p2test
+        value = PRINTCHR | (((unsigned int)*msg) << 8);
+        status = SYSCALL(DOIO, (int)&devReg->command, (int)value, 0);
+        if ((status & 0xFF) != CHARRECV) {
+            return -status;
+        }
+        msg++;
+        charSent++;
+    }
+    return charSent;
+}
 
-void writePrinter(state_t *stato){
-    char* VAddr_first_char = (char *) stato->reg_a1; 
+void writeDevice(state_t *stato, int asid, int type){
+//    termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, type);
+    char* vAddr = (char*)stato->reg_a1;
     int str_len = stato->reg_a2;
     //Controllo che l'indirizzo virtuale del primo char sia entro il logical U-Proc Address Space, non ecceda la lunghezza del  e che la lunghezza della stringa sia accettabile
     //In teoria nel logical U-Proc Address Space è limitato da sotto da UPROCSTARTADDR e sopra da USERSTACKTOP 
-    if((str_len < 0 || str_len > 128) || VAddr_first_char < (char *) UPROCSTARTADDR || VAddr_first_char >= (char *) USERSTACKTOP) {
+    if((str_len < 0 || str_len > MAXSTRLENG) || vAddr < (char *) UPROCSTARTADDR || vAddr >= (char *) USERSTACKTOP) {
         TerminateSYS(asidAcquired);
         return; 
     }
-    int retStatus = SYSCALL(WRITEPRINTER, (unsigned int) VAddr_first_char, str_len, 0);
-    //Devo vedere che tipo di errore mi ritorna, se è diverso da 1 allora c'è stato un errore 
-    if(retStatus != 1) {
-        stato->reg_a0 = -retStatus;
+    int status;
+    if (type == WRITETERMINAL) {
+        memaddr* indirizzo_comando = (memaddr*) stato->reg_a1;
+        int deviceIndex = findDevice(indirizzo_comando);
+        acquireDevice(asid, deviceIndex);
+        status = printTerminal(vAddr, str_len, deviceIndex);
+        releaseDevice(asid, deviceIndex);
+    } else if (type == WRITEPRINTER){
+        memaddr* indirizzo_comando = (memaddr*) stato->reg_a1;
+        int deviceIndex = findDevice(indirizzo_comando);
+        acquireDevice(asid, deviceIndex);
+        status = printPrinter(vAddr, str_len, deviceIndex);
+        releaseDevice(asid, deviceIndex);
     }
     //Se l'operazione ha avuto successo, in a0 c'è il numero di caratteri trasmessi 
-    stato->reg_a0 = str_len;
+    stato->reg_a0 = status;
     stato->pc_epc += 4; // incrementa il program counter
     LDST(stato); // ripristina lo stato del processo corrente (va messo in teoria anche se non scritto perchè il processo viene sospeso)
-}
-
-void writeTerminal(state_t *stato){
-    char *VAddr_first_char = (char *) stato->reg_a1;
-    int str_len = stato->reg_a2;
-    if((str_len < 0 || str_len > 128) || VAddr_first_char < (char *) UPROCSTARTADDR || VAddr_first_char >= (char *) USERSTACKTOP) {
-        TerminateSYS(asidAcquired);
-        return; 
-    }
-    int retStatus = SYSCALL(WRITETERMINAL, (unsigned int) VAddr_first_char, str_len, 0);
-    if(retStatus != 5){
-        stato->reg_a0 = -retStatus; 
-    }
-    //Se l'operazione ha avuto successo, in a0 c'è il numero di caratteri trasmessi 
-    stato->reg_a0 = str_len;
-    stato->pc_epc += 4; 
-    LDST(stato);
 }
 
 
@@ -92,19 +118,18 @@ void generalExceptionHandler(){
 
     //incremento così passo all'istruzione dopo la syscall (cap7)
     state->pc_epc += 4; //incremento di 4 il program counter che ha causato l'eccezione
-
+    int asid = sup->sup_asid;
     switch (state->reg_a0){
         case TERMINATE:   // SYS2
-            int asid = sup->sup_asid;
             TerminateSYS(asid);
             break;
 
         case WRITEPRINTER: // SYS3
-            writePrinter(state);
+            writeDevice(state, asid, WRITEPRINTER);
             break;
 
         case WRITETERMINAL: // SYS4
-            writeTerminal(state);
+            writeDevice(state, asid, WRITETERMINAL);
             break;
 
         case READTERMINAL:  // SYS5
@@ -120,12 +145,5 @@ void generalExceptionHandler(){
 
 
 void supportTrapHandler(support_t *sup_ptr){         
-  extern int swap_mutex;
-  extern int asidAcquired;
-  
-  if(asidAcquired== sup_ptr->sup_asid) {
-    SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0); //NSYS4
-    asidAcquired = -1;
-  }
-  SYSCALL(TERMINATE, 0, 0, 0); // Termina il processo corrente 
+  TerminateSYS(sup_ptr->sup_asid);
 }
