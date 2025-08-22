@@ -29,34 +29,18 @@ void passupordie(int cause, state_t* stato){
   ACQUIRE_LOCK(&global_lock);
   int cpu_id = getPRID();
   pcb_t* current = current_process[cpu_id];
-
-  if (current == NULL) {
-    RELEASE_LOCK(&global_lock);
-    scheduler();
-  }
-
   if (current->p_supportStruct == NULL) {
     killProcess(current);
     RELEASE_LOCK(&global_lock);
     scheduler();
-  }
-
+  } else {
   // Copia dell'eccezione
-  current->p_supportStruct->sup_exceptState[cause] = *stato;
-  context_t* context = &current->p_supportStruct->sup_exceptContext[cause];
-  RELEASE_LOCK(&global_lock);
-  LDCXT(context->stackPtr, context->status, context->pc); // qui carica il context
-  // quindi mettiamo il release lock prima
-/*
-  This function allows a current process to change its operating mode,
- * turning on/off interrupt masks, turning on user mode, and at the same time
- * changing the location of execution.
- * It is available only in kernel mode, thru a BIOS routine
- * (otherwise it causes a break).
- * It updates processor status, PC and stack pointer _completely_,
- * in one atomic operation.
- * It has no meaningful return value.
- * */
+    current->p_supportStruct->sup_exceptState[cause] = *stato;
+    context_t* context = &current->p_supportStruct->sup_exceptContext[cause];
+    RELEASE_LOCK(&global_lock);
+    LDCXT(context->stackPtr, context->status, context->pc); // qui carica il context
+  }
+  scheduler();
 }
 void exceptionHandler()
 {
@@ -72,6 +56,7 @@ void exceptionHandler()
       } else if ((getExcepCode >= 0 && getExcepCode <= 7) || 
                   getExcepCode == 9 || getExcepCode == 10 || 
                  (getExcepCode >= 12 && getExcepCode <= 23)) {
+          klog_print("passupordie!!");
           passupordie(GENERALEXCEPT, stato); // general exception
       }
     }
@@ -282,48 +267,48 @@ if (registro > 0){
 if (!(stato->status & MSTATUS_MPP_MASK)) { // E' in user mode (fase 3??)
   // allora dobbiamo fare un'azione descritta nella pagina 7 del pdf
   stato->cause = PRIVINSTR;
-  klog_print("usermode");
   exceptionHandler();
 }
 switch (registro){
    case CREATEPROCESS:
-    klog_print("createProcess");
+  //  klog_print("createProcess");
     createProcess(stato);
     break;
    case TERMPROCESS:
-    klog_print("terminateProcess");
+   // klog_print("terminateProcess");
     terminateProcess(stato, stato->reg_a1);
     break;
    case PASSEREN:
-    klog_print("P");
+    //klog_print("P");
     P(stato, p_id);
     break;
    case VERHOGEN:
-    klog_print("V");
+    //klog_print("V");
     V(stato, p_id);
     break;
    case DOIO:
     // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
-    klog_print("DoIO");
+   // klog_print("DoIO");
     DoIO(stato, p_id);
     break;
    case GETTIME:
-   klog_print("GetCPUTime");
+   //klog_print("GetCPUTime");
     GetCPUTime(stato, p_id);
     break;
    case CLOCKWAIT:
-    klog_print("WaitForClock");
+   // klog_print("WaitForClock");
     WaitForClock(stato, p_id);
     break;
    case GETSUPPORTPTR:
-    klog_print("GetSupportData");
+   // klog_print("GetSupportData");
     GetSupportData(stato, p_id); 
     break;
    case GETPROCESSID:
-    klog_print("GetProcessId");
+   // klog_print("GetProcessId");
     GetProcessId(stato, p_id); 
     break;
-   default: 
+   default:
+    klog_print("ERROR!");
     PANIC(); // Se non è nessuna delle syscall allora PANIC, non dovrebbe arrivare mai qui
     break;
    }

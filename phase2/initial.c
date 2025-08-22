@@ -52,7 +52,6 @@ void configurePassupVector() {
 
 //FUNZIONE DI INIZIALIZZAZIONE
 void initializeSystem() {
-  klog_print("Starting Nucleus.\n");
   configurePassupVector(); // PUNTO DUE
   initPcbs();
   initASL();
@@ -75,7 +74,7 @@ void createFirstProcess() {
   // Enable interrupts and kernel mode
   primo_processo->p_s.mie = MIE_ALL;
   primo_processo->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M;
-  primo_processo->p_s.pc_epc = (memaddr)test;
+  primo_processo->p_s.pc_epc = (memaddr)p3test;
   insertProcQ(&pcbReady, primo_processo);
   process_count++;
 }

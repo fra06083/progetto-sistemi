@@ -166,6 +166,7 @@ void generalExceptionHandler(){
 
 
 
-void supportTrapHandler(int asid){         
+void supportTrapHandler(int asid){     
+  klog_print("Support Trap Handler invoked\n");    
   TerminateSYS(asid);
 }
