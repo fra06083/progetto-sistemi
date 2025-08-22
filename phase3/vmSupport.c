@@ -74,7 +74,6 @@ void uTLB_ExceptionHandler() {
             trovato = TRUE;
     }
     if (trovato) {
-        klog_print("trovato\n");
         updateTLB(swap_pool[i].sw_pte);
         if (sup_ptr->sup_privatePgTbl[p].pte_entryLO & ENTRYLO_VALID) { // controlliamo se è valido, rilasciamo e ricarichiamo
             release_mutexTable();
