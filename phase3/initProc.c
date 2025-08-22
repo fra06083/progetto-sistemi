@@ -4,13 +4,12 @@
  - per inizializzazione vedi da sez 9 in poi 
  */
 
-
+extern void klog_print(const char *str);
 //Dichiarazioni (globali) delle variabili di fase 3 (qua)
 //N.B. Nella documentazione in alcuni casi possiamo scegliere di dichiararle localmente nei file! 
 int masterSem; // alla fine dice di gestirlo così
-state_t procStates[UPROCMAX];
-support_t procSupport[UPROCMAX];
-support_t sup_struct[8]; //8 U-proc, per ogni  struttura di supporto 
+state_t procStates[UPROCMAX] = {0};
+support_t sup_struct[UPROCMAX] = {0}; //8 U-proc, per ogni  struttura di supporto 
 swap_t swap_pool[POOLSIZE]; // nel documento dice uprocmax * 2
 int swap_mutex; // semaforo mutua esclusione pool
 int asidAcquired; // asid che prende la mutua esclusione
@@ -18,6 +17,7 @@ int supportSem[NSUPPSEM]; // Dal punto 9 ci servono dei semafori supporto dei de
 int supportSemAsid[UPROCMAX];
 
 void acquireDevice(int asid, int devIndex) {
+    klog_print("Acquire Device \n");
     int* sem = &supportSem[devIndex];
     SYSCALL(PASSEREN, (int)sem, 0, 0);
     supportSemAsid[asid-1] = devIndex;
@@ -29,10 +29,12 @@ void releaseDevice(int asid, int deviceIndex) {
 }
 
 void acquireSwapPoolTable(int asid) {
+    klog_print("Acquire SWAP \n");
     SYSCALL(PASSEREN, (int)&swap_mutex, 0, 0);
     asidAcquired = asid;
 }
 void releaseSwapPoolTable() {
+    klog_print("RELEASE SWAP \n");
     asidAcquired = -1;
     SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0);
 }
@@ -63,10 +65,10 @@ void p3test(){
 
     // FIX: i semafori di supporto si inizializzano una sola volta fuori dal ciclo
     for (int i = 0; i < NSUPPSEM; i++) supportSem[i] = 1; 
-
+    for (int i = 0; i < UPROCMAX; i++) supportSemAsid[i] = -1; // -1 significa che non ha acquisito nessun device
     // inizializzazione processi:
     for (int i = 0; i < UPROCMAX; i++) {
-        supportSemAsid[i] = -1; // inizializziamo a -1 (non assegnato!)
+        klog_print("Initializing processes\n");
         int ASID = i+1;
 
         // Iniziazione stati
@@ -110,11 +112,12 @@ void p3test(){
             sup_struct[i].sup_privatePgTbl[j].pte_entryHI = entryHI; // Inizializza l'entry HI
             sup_struct[i].sup_privatePgTbl[j].pte_entryLO = entryLO; // Inizializza l'entry LO
         }
-
+        klog_print("creazione processo\n");
         SYSCALL(CREATEPROCESS, (int)&(procStates[i]), 0, (int)&(sup_struct[i])); // FIX: uso sup_struct
     }
 
     for (int i = 0; i < UPROCMAX; i++) { // P così aspetta che termini
+        klog_print("Waiting for process to terminate...\n");
         SYSCALL(PASSEREN, (int)&masterSem, 0, 0);
     }
 

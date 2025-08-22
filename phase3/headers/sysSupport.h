@@ -13,5 +13,5 @@ extern int asidAcquired; // asid che prende la mutua esclusione
 extern int supportSem[NSUPPSEM]; // Dal punto 9 ci servono dei semafori supporto dei device
 extern int supportSemAsid[UPROCMAX];
 void generalExceptionHandler();
-void supportTrapHandler(support_t *sup_ptr);      //definito qui (usato con extern in vmSupport)
+void supportTrapHandler(int asid);      //definito qui (usato con extern in vmSupport)
 #endif

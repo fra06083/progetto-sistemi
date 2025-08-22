@@ -8,34 +8,23 @@ if the status register with saved_exception_state->status & MSTATUS_MPP_MASK see
 Rovelli’s thesis for more details.
 */
 
-void uTLB_RefillHandler(){      //TLB-Refill event handler 
-  int cpu_id= getPRID();
-  ACQUIRE_LOCK(&global_lock);
-  support_t *sup = (support_t *)current_process[cpu_id]->p_supportStruct;
-  unsigned int entry_hi = sup->sup_exceptState[0].entry_hi; //utilizzaimo sup_exceptState[0] perchè le eccezioni sono tbl 0 o general 1 exception
-  unsigned int vpn = entry_hi  >> 12; //estrae il VPN dall'entry_hi
-
-  int index;
-  if(vpn==0x8FFFF) index = 31; // Stack area
-  else index = vpn - 0x80000; // text e data area
- 
-  if(index<0 || index>=USERPGTBLSIZE){
-    // Indice fuori dai limiti della page table
-    SYSCALL(TERMPROCESS,0, 0, 0); // Chiamata di sistema per gestire l'errore
-  }
-
-  pteEntry_t entry= sup->sup_privatePgTbl[index]; // Ottiene l'entry della page table
-
-  setENTRYHI(entry.pte_entryHI); // Imposta l'entry HI
-  setENTRYLO(entry.pte_entryLO); // Imposta l'entry LO
-  TLBWR(); // Scrive l'entry nella TLB
-
-  //restituisce il controllo al processo corrente
-  RELEASE_LOCK(&global_lock);
-  LDST(&sup->sup_exceptState[0]); 
-
-}
-
+void uTLB_RefillHandler() {
+    int prid = getPRID();
+    state_t *state = GET_EXCEPTION_STATE_PTR(prid);
+    unsigned int p = getPageIndex(state->entry_hi); //  trova il numero della pagina
+    ACQUIRE_LOCK(&global_lock);
+    pcb_t *pcb = current_process[prid];
+    if (pcb == NULL || pcb->p_supportStruct == NULL) { // non dovrebbe succedere in fase 3
+        RELEASE_LOCK(&global_lock);
+        PANIC();
+    }
+    pteEntry_t *entry = &(pcb->p_supportStruct->sup_privatePgTbl[p]); // Ottiene l'entry della page table
+    setENTRYHI(entry->pte_entryHI); // Imposta l'entry HI
+    setENTRYLO(entry->pte_entryLO); // Imposta l'entry LO
+    TLBWR(); // Scrive l'entry nella TLB
+    RELEASE_LOCK(&global_lock);
+    LDST(state);
+}  
 void passupordie(int cause, state_t* stato){
   ACQUIRE_LOCK(&global_lock);
   int cpu_id = getPRID();
@@ -275,7 +264,7 @@ void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
   RELEASE_LOCK(&global_lock);
   LDST(stato);
 }
-
+extern void klog_print(char *str);
 void syscallHandler(state_t *stato){
 
 // QUI VERIFICHIAMO SE E' in kernel mode
@@ -287,40 +276,51 @@ RELEASE_LOCK on the Global Lock, in order to avoid race condition.
 int p_id = getPRID();
 int registro = stato->reg_a0;
 if (registro > 0){
+  klog_print("registro > 0");
   passupordie(GENERALEXCEPT, stato);
 }
 if (!(stato->status & MSTATUS_MPP_MASK)) { // E' in user mode (fase 3??)
   // allora dobbiamo fare un'azione descritta nella pagina 7 del pdf
   stato->cause = PRIVINSTR;
+  klog_print("usermode");
   exceptionHandler();
 }
 switch (registro){
    case CREATEPROCESS:
+    klog_print("createProcess");
     createProcess(stato);
     break;
    case TERMPROCESS:
+    klog_print("terminateProcess");
     terminateProcess(stato, stato->reg_a1);
     break;
    case PASSEREN:
+    klog_print("P");
     P(stato, p_id);
     break;
-    case VERHOGEN:
+   case VERHOGEN:
+    klog_print("V");
     V(stato, p_id);
     break;
    case DOIO:
     // Questo servizio richiede al Nucleo di eseguire un'operazione di I/O su un dispositivo.
+    klog_print("DoIO");
     DoIO(stato, p_id);
     break;
    case GETTIME:
+   klog_print("GetCPUTime");
     GetCPUTime(stato, p_id);
     break;
    case CLOCKWAIT:
+    klog_print("WaitForClock");
     WaitForClock(stato, p_id);
     break;
    case GETSUPPORTPTR:
+    klog_print("GetSupportData");
     GetSupportData(stato, p_id); 
     break;
    case GETPROCESSID:
+    klog_print("GetProcessId");
     GetProcessId(stato, p_id); 
     break;
    default: 

@@ -12,7 +12,7 @@ extern int sem[SEMDEVLEN];
 extern struct pcb_t *current_process[NCPU];
 extern struct list_head pcbReady;
 extern cpu_t start_time[NCPU];
-
+unsigned int getPageIndex(unsigned int entry_hi);
 // Funzioni dichiarate
 void generalExceptionHandler(state_t *stato);
 void exceptionHandler();

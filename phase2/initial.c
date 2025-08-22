@@ -67,6 +67,7 @@ void initializeSystem() {
   LDIT(PSECOND);
 }
 // FUNZIONE CHE CREA IL PRIMO PROCESSO
+extern void test();
 void createFirstProcess() {
   pcb_t *primo_processo = allocPcb();
   RAMTOP(primo_processo->p_s.reg_sp);  // Set SP to last RAM frame
@@ -74,14 +75,14 @@ void createFirstProcess() {
   // Enable interrupts and kernel mode
   primo_processo->p_s.mie = MIE_ALL;
   primo_processo->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M;
-  primo_processo->p_s.pc_epc = (memaddr)p3test;
+  primo_processo->p_s.pc_epc = (memaddr)test;
   insertProcQ(&pcbReady, primo_processo);
   process_count++;
 }
 
 void configureCPUs() {
   configureIRT();
- // *((memaddr *)TPR) = 0;
+  *((memaddr *)TPR) = 0;
   state_t stato;
   stato.status = MSTATUS_MPP_M;
   stato.pc_epc = (memaddr) scheduler;

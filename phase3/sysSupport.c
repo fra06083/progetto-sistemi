@@ -102,9 +102,9 @@ int inputFromTerminal(char* addr, int term) {
     }
     return str_len;
 }
-void readTerminal(state_t* stato){
+void readTerminal(state_t* stato, int asid){
     char *vAddr = (char *) stato->reg_a1; 
-    if(Vaddr_start_buff < (char *) UPROCSTARTADDR || Vaddr_start_buff >= (char *) USERSTACKTOP) {
+    if(vAddr < (char *) UPROCSTARTADDR || vAddr >= (char *) USERSTACKTOP) {
         TerminateSYS(asidAcquired);
         return; 
     }
@@ -124,8 +124,9 @@ void readTerminal(state_t* stato){
 
 
 
-
+extern void klog_print(char *str);
 void generalExceptionHandler(){
+    klog_print("!!!GENERAL\n");
     support_t *sup = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
     // determiniamo la causa
     state_t* state = &(sup->sup_exceptState[GENERALEXCEPT]);
@@ -133,7 +134,7 @@ void generalExceptionHandler(){
     //Decodifica l'eccezione: se NON è SYSCALL -> Program Trap 
     unsigned int exccode = (state->cause & GETEXECCODE) >> CAUSESHIFT;  // mask/shift definiti in const.h
     if (exccode != SYSEXCEPTION) {
-        supportTrapHandler(sup);   // Program Trap handler 
+        supportTrapHandler(sup->sup_asid);   // Program Trap handler 
         return;                    // non proseguire nel dispatch SYSCALL
     }
 
@@ -154,17 +155,17 @@ void generalExceptionHandler(){
             break;
 
         case READTERMINAL:  // SYS5
-            readTerminal(state); 
+            readTerminal(state, asid); 
             break;
 
         default:
-            supportTrapHandler(sup);
+            supportTrapHandler(sup->sup_asid);
             break;
     }
 }
 
 
 
-void supportTrapHandler(support_t *sup_ptr){         
-  TerminateSYS(sup_ptr->sup_asid);
+void supportTrapHandler(int asid){         
+  TerminateSYS(asid);
 }

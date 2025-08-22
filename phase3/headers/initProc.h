@@ -14,7 +14,7 @@ extern void uTLB_ExceptionHandler();
 extern void generalExceptionHandler();
 unsigned int getPageIndex(unsigned int entry_hi);
 extern void print(char *msg);
-void acquireDevice();
+void acquireDevice(int asid, int deviceIndex);
 void releaseDevice();
 void acquireSwapPoolTable(int asid);
 void releaseSwapPoolTable();

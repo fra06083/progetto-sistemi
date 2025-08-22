@@ -1,4 +1,7 @@
 #include "./headers/vmSupport.h"
+#define getFlashAddr(asid) (DEV_REG_ADDR(IL_FLASH, asid-1))
+#define writeFlash(asid, flashAddr, block)  FlashRW(asid, flashAddr, block, 0)
+#define readFlash(asid, flashAddr, block)   FlashRW(asid, flashAddr, block, 1)
 extern void klog_print(const char *msg);
 /*
 - TLB exception handler (The Pager) [Section 4].
@@ -34,14 +37,31 @@ void updateTLB(pteEntry_t *pte) {
 }
 
    
-
+void FlashRW(int asid, memaddr frameAddr, int block, int read){
+ //Punto 9 (c)
+ //Block number = VPN k (corrispondono)
+ //Scrivere nel DATA0 field (del flash device) l'indirizzo fisico di partenza di un certo frame
+ int semIndex = findDevice((memaddr*) getFlashAddr(asid));
+ acquireDevice(asid, semIndex);
+ dtpreg_t *devreg = (dtpreg_t *) getFlashAddr(asid); // mi dà l'indirizzo del registro del flash
+ int commandAddr = (int)&devreg->command;
+ int commandValue = (read ? FLASHREAD : FLASHWRITE) | (block << 8); // qua il comando cambia a seconda che sia read o write
+ devreg->data0 = frameAddr;
+ int status = SYSCALL(DOIO, commandAddr, commandValue, 0);
+ releaseDevice(asid, semIndex);
+ int error = read ? 4 : 5; // 4: FLASHREAD_ERROR, 5: FLASHWRITE_ERROR
+    if ((status & 0XFF) == error) { // treat flash I/O error as a program trap
+        release_mutexTable();
+        supportTrapHandler(asid);
+    }
+}
 void uTLB_ExceptionHandler() {
     klog_print("uTLB ExceptionHandler;");
     support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       //NSYS8 (pulire commenti, uso come placeholder)
     state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)
 
     if (state->cause == EXC_MOD) { // punto 4.2
-      supportTrapHandler(sup_ptr);
+      supportTrapHandler(sup_ptr->sup_asid);
       return; // Non proseguire nel dispatch SYSCALL 
     }
     unsigned int p = getPageIndex(state->entry_hi);                          // punto 5 (4.2 Pager)
@@ -69,20 +89,22 @@ void uTLB_ExceptionHandler() {
             //frame occupato, lo libero (punto 9)
             int k = swap_pool[fr_index].sw_pageNo;                     //Virtual Page Number k del frame occupato 
             int asid_proc_x = swap_pool[fr_index].sw_asid;             //k e processo x (asid) ~ stessi nomi documentazione 
-            pteEntry_t *proc_x_privatePgTbl = swap_pool[fr_index].sw_pte;   
-            proc_x_privatePgTbl[k].pte_entryHI = (0 << VBit);           //Shift sx, spengo il Vbit per rendere invalid  
+            pteEntry_t *entry = swap_pool[fr_index].sw_pte;
+            entry->pte_entryLO &= ~VALIDON; // spegne il vbit impostandolo ad invalid  
             //punto 9 (b): Update TLB if needed 
             int trovato = FALSE;             
             for (int i = 0; i < POOLSIZE && !trovato; i++){             //Da telegram: swap_mutex così l'esecuzione è atomica 9 (a,b), manca disabilitazione interrupt in questa fase 
                 unsigned int sw_asid = swap_pool[i].sw_asid;
-                if (sw_asid == proc_x_privatePgTbl && swap_pool[i].sw_pageNo == k)
+                if (sw_asid == entry && swap_pool[i].sw_pageNo == k)
                     trovato = TRUE;
             } 
-            if(trovato) updateTLB(swap_pool[fr_index].sw_pte);
-            //Punto 9 (c)
-            //Block number = VPN k (corrispondono)
-            //Scrivere nel DATA0 field (del flash device) l'indirizzo fisico di partenza di un certo frame 
-            memaddr fr_addr = FRAMEPOOLSTART + (fr_index * PAGESIZE);                 //Sono impazzito a trovare la costante FRAMEPOOLSTART che non è MENZIONATA da nessuna parte (se non funziona comunque vuol dire che i frame partono nella RAM fisica dall'indirizzo 0x2002000)
+            if(trovato){
+                updateTLB(swap_pool[fr_index].sw_pte);
+                writeFlash(asid_proc_x, FRAMEPOOLSTART + (fr_index * PAGESIZE), k); //Scrivo il frame nel flash device
+            } 
+            readFlash(ASID, FRAMEPOOLSTART + (fr_index * PAGESIZE), p);
+         /* memaddr fr_addr = FRAMEPOOLSTART + (fr_index * PAGESIZE);                 //Sono impazzito a trovare la costante FRAMEPOOLSTART che non è MENZIONATA da nessuna parte (se non funziona comunque vuol dire che i frame partono nella RAM fisica dall'indirizzo 0x2002000)
+            int devIndex = findDevice(fr_addr);
             dtpreg_t *flash_dev_x = (dtpreg_t *) DEV_REG_ADDR(IL_FLASH, asid_proc_x - 1);                      //RIVEDERE !!!!!!
             flash_dev_x->data0 = fr_addr; 
             //int ioStatus = SYSCALL(DOIO, int *commandAddr, int commandValue, 0);
@@ -91,7 +113,8 @@ void uTLB_ExceptionHandler() {
             if(ioStatus != 1){    //Causa una TRAP se il comando non è andato a buon fine
                 supportTrapHandler(sup_ptr); 
                 return;
-            } 
+            }
+         
             //Read the Current Process content of logical page p (in pratica devi fare una read sul flash device) into frame i (fr_index e fr_address)
             dtpreg_t *flash_dev_cp = (dtpreg_t *) DEV_REG_ADDR(IL_FLASH, ASID - 1); 
             flash_dev_cp->data0 = fr_addr;
@@ -100,7 +123,8 @@ void uTLB_ExceptionHandler() {
             if(ioStatus_2 != 1){    //Causa una TRAP se il comando non è andato a buon fine (1 vedi uMPS3 doc)
                 supportTrapHandler(sup_ptr); 
                 return;
-            } 
+            }
+            */ 
             //Punto 10
             swap_pool[fr_index].sw_asid = ASID;                                  //Aggiorno la swap pool per dire che il frame i è occupato dal processo ASID
             swap_pool[fr_index].sw_pageNo = p;                                   //Aggiorno la swap pool per dire che il frame i contiene la pagina p

@@ -9,7 +9,12 @@ Current Process field of the current CPU.
   ACQUIRE_LOCK(&global_lock);
   // Controllo se la ready queue è vuota
   if (emptyProcQ(&pcbReady)) {
-    if (process_count == 0) { 
+    if (process_count == 0) {
+      unsigned int *irt_entry = (unsigned int*) IRT_START;
+      for (int i = 0; i < IRT_NUM_ENTRY; i++) {
+        *irt_entry = getPRID();
+        irt_entry++;
+      }
       // Ready queue vuota e nessun processo in esecuzione, quindi HALT
       RELEASE_LOCK(&global_lock); // Rilascio del lock prima di fermare l'esecuzione, quindi HALT
       HALT(); // Fermiamo l'esecuzione

@@ -18,6 +18,7 @@
  #include "../headers/const.h"
  #include "../headers/types.h"
  #include <uriscv/liburiscv.h>
+ extern void klog_print(const char *msg);
  typedef unsigned int devregtr;
  
  /* hardware constants */
@@ -550,9 +551,10 @@
  
  void p5a() {
      /* generage a TLB exception after a TLB-Refill event */
- 
+     klog_print("p5a starts\n");
      p5MemLocation  = (memaddr *)0x80000000;
      *p5MemLocation = 42;
+     klog_print("arriva qua?");
  }
  
  /* second part of p5 - should be entered in user mode first time through */
