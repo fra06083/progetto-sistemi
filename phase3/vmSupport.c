@@ -9,9 +9,8 @@ extern void klog_print(const char *msg);
 - the Swap Pool table is local to this module
 */
 
-
-
 int selectSwapFrame(){                                    // Page replacement FIFO (5.4)
+    klog_print("Frame selezionato\n"); 
     int selected_frame = next_frame_index;
     next_frame_index++;
     next_frame_index = (next_frame_index) % POOLSIZE; // "increment this variable mod the size of the Swap Pool"
@@ -27,15 +26,21 @@ void release_mutexTable(){
     asidAcquired = -1;
 }
 
-void updateTLB(pteEntry_t *pte) {
-    unsigned int entryHI = pte->pte_entryHI;
-    unsigned int entryLO = pte->pte_entryLO;
-    //Mutua esclusione non serve perchè ogni processore ha la sua TLB
-    //Istruzioni per scrivere nella TLB
-    setENTRYHI(entryHI); // Imposta l'entry HI
-    setENTRYLO(entryLO); // Imposta l'entry LO
-    TLBWR(); // Scrive l'entry nella TLB
+void check_updateTLB(pteEntry_t *pte){
+    //Metto l'entry della page Table del processo corrente, guardo se è nella TLB
+    setENTRYHI(pte->pte_entryHI);       //Comando che scrive in un Registro: EntryHiRegister
+    //TLBP cerca solo l'entryHi contenuta nel EntryHiRegister, non serve setEntryLO solo quando scrivo nella TLB (comando TLBWR)
+    TLBP();         //comando per fare l'operazione di search nella TLB del processore, cerca se nella TLB c'è un match col valore di EntryHi register (corrente direi, dovrebbe essere come TLBWR sul processore corrente):
+    unsigned int Index = getINDEX();        //Ottengo il valore dell' Index Register
+    if(Index & PRESENTFLAG == 1){           //Leggo il Probe bit, 1 ahia , 0 tutt'appost 
+        //Caso no match is found
+        //Mutua esclusione non serve perchè ogni processore ha la sua TLB
+        //Istruzioni per scrivere nella TLB
+        setENTRYLO(pte->pte_entryLO); // Imposta l'entry LO Register, entryHi già settato sopra
+        TLBWR(); // Scrive l'entry nella TLB
+    }//Se non va nell'if la TLB contiene già la entry
 }
+
 
    
 void FlashRW(int asid, memaddr frameAddr, int block, int read){
@@ -58,7 +63,7 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
 }
 void uTLB_ExceptionHandler() {  
     support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       //NSYS8 (pulire commenti, uso come placeholder)
-    state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)
+    state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)       
     if (state->cause == EXC_MOD) { // punto 4.2
       supportTrapHandler(sup_ptr->sup_asid);
       return; // Non proseguire nel dispatch SYSCALL 
@@ -74,24 +79,25 @@ void uTLB_ExceptionHandler() {
             trovato = TRUE;
     }
     if (trovato) {
-        updateTLB(swap_pool[i].sw_pte);
+        check_updateTLB(swap_pool[i].sw_pte);                           
         if (sup_ptr->sup_privatePgTbl[p].pte_entryLO & ENTRYLO_VALID) { // controlliamo se è valido, rilasciamo e ricarichiamo
             release_mutexTable();
             LDST(state);
         } 
-    }
-    klog_print("non trovato\n");
+    }  
+    klog_print("non trovato!!\n");
     // ... continua punto 7         
-    // Seleziona un frame dalla Swap Pool usando l'algoritmo di page replacement
-    unsigned int fr_index = selectSwapFrame();     //FCFS() recommended/RR();
+    // Seleziona un frame dalla Swap Pool usando l'algoritmo di page replacement 
+    int fr_index = selectSwapFrame();     //FCFS() recommended/RR();
     if(swap_pool[fr_index].sw_asid != -1 ){                         //asid -1 -> frame libero 
     //frame occupato, lo libero (punto 9)
+        klog_print("frame occupato\n");
         int k = swap_pool[fr_index].sw_pageNo;                     //Virtual Page Number k del frame occupato 
         int asid_proc_x = swap_pool[fr_index].sw_asid;             //k e processo x (asid) ~ stessi nomi documentazione 
         pteEntry_t *entry = swap_pool[fr_index].sw_pte;
         entry->pte_entryLO &= ~VALIDON; // spegne il vbit impostandolo ad invalid  
         //punto 9 (b): Update TLB if needed
-        updateTLB(entry);
+        check_updateTLB(entry);
         writeFlash(asid_proc_x, FRAMEPOOLSTART + (fr_index * PAGESIZE), k); //Scrivo il frame nel flash device
     /*    int trovato = FALSE;             
         for (int i = 0; i < POOLSIZE && !trovato; i++){             //Da telegram: swap_mutex così l'esecuzione è atomica 9 (a,b), manca disabilitazione interrupt in questa fase 
@@ -105,6 +111,7 @@ void uTLB_ExceptionHandler() {
             }
         */
     } 
+    klog_print("frame non occupato\n");
     readFlash(ASID, FRAMEPOOLSTART + (fr_index * PAGESIZE), p);
     //Punto 10
     swap_pool[fr_index].sw_asid = ASID;                                  //Aggiorno la swap pool per dire che il frame i è occupato dal processo ASID
@@ -115,7 +122,7 @@ void uTLB_ExceptionHandler() {
     swap_pool[fr_index].sw_pte->pte_entryLO |= (FRAMEPOOLSTART + (fr_index * PAGESIZE)); // imposta la pfn all'indirizzo del frame
     //Devo aggiornare il PFN field nella pte_entry_LO della pagina p del processo ASID
     //Aggiorno la TLB
-    updateTLB(swap_pool[fr_index].sw_pte);
+    check_updateTLB(swap_pool[fr_index].sw_pte);
     //Punto 11
     release_mutexTable(); // Rilascio il mutex della swap pool
     LDST(state); // Ripristino lo stato del processo che ha causato il page fault     

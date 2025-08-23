@@ -53,7 +53,7 @@ unsigned int getPageIndex(unsigned int entry_hi)
 extern void klog_print(const char *msg);
 void p3test(){
     // initialize the swap pool as written in documentation: to access P on sem_mutex then V
-    klog_print("Initializing swap pool and support structures...\n");
+//    klog_print("Initializing swap pool and support structures...\n");
     for (int i = 0; i < POOLSIZE; i++) {
         swap_pool[i].sw_asid = -1;
         swap_pool[i].sw_pageNo = 0;
@@ -68,7 +68,7 @@ void p3test(){
     for (int i = 0; i < UPROCMAX; i++) supportSemAsid[i] = -1; // -1 significa che non ha acquisito nessun device
     // inizializzazione processi:
     for (int i = 0; i < UPROCMAX; i++) {
-        klog_print("Initializing processes\n");
+//        klog_print("Initializing processes\n");
         int ASID = i+1;
 
         // Iniziazione stati
@@ -83,7 +83,8 @@ void p3test(){
 
         /* CONTEXT TLB EXC. HANDLER */
         context_t context_TLB;
-        context_TLB.pc = (memaddr)uTLB_ExceptionHandler;
+        context_TLB.pc = (memaddr)
+        uTLB_ExceptionHandler;
         context_TLB.status = MSTATUS_MPP_M;
         context_TLB.stackPtr = (memaddr)&(sup_struct[i].sup_stackTLB[499]); // gestiamo come stack dal fondo
 
@@ -96,7 +97,7 @@ void p3test(){
         // assegniamo i context alle strutture di supporto
         sup_struct[i].sup_exceptContext[PGFAULTEXCEPT] = context_TLB; // TLB exception
         sup_struct[i].sup_exceptContext[GENERALEXCEPT] = context_GE; // general exception
-        klog_print("ok settato\n");
+//        klog_print("ok settato\n");
 
         //Per il momento setta qui tutte le entry della proc page table per ogni U-proc (supp_struct), 
         //segui documentazione VPN field, ASID field, ecc... 
@@ -112,7 +113,7 @@ void p3test(){
             sup_struct[i].sup_privatePgTbl[j].pte_entryHI = entryHI; // Inizializza l'entry HI
             sup_struct[i].sup_privatePgTbl[j].pte_entryLO = entryLO; // Inizializza l'entry LO
         }
-        klog_print("creazione processo\n");
+//        klog_print("creazione processo\n");
         SYSCALL(CREATEPROCESS, (int)&(procStates[i]), 0, (int)&(sup_struct[i])); // FIX: uso sup_struct
     }
 
