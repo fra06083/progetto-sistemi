@@ -33,31 +33,37 @@ flashRW
 uTLB EXCEPTION
 frame non occupato
 flashRW 
-writeDevice
-frame non occupato
-flashRW 
-writeDevice
+writeDevice: writing to terminal
 frame non occupato
 flashRW 
 uTLB EXCEPTION
 frame non occupato
 flashRW 
-writeDevice
+uTLB EXCEPTION
 frame non occupato
 flashRW 
-writeDevice
+uTLB EXCEPTION
 frame non occupato
 flashRW 
-writeDevice
+uTLB EXCEPTION
 frame non occupato
 flashRW 
-writeDevice
+uTLB EXCEPTION
 frame non occupato
 flashRW 
-writeDevice
+uTLB EXCEPTION
+frame non occupato
+flashRW 
+uTLB EXCEPTION
 Waiting for process to terminate...
-writeDevice
+uTLB EXCEPTION
+writeDevice: writing to terminal
+writeDevice: writing to terminal
+writeDevice: writing to terminal
+writeDevice: writing to terminal
+writeDevice: writing to terminal
 Waiting for process to terminate...
+writeDevice: writing to terminal
 Waiting for process to terminate...
 Waiting for process to terminate...
 Waiting for process to terminate...

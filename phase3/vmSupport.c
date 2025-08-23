@@ -53,7 +53,7 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
     //Punto 9 (c)
     //Block number = VPN k (corrispondono)
     //Scrivere nel DATA0 field (del flash device) l'indirizzo fisico di partenza di un certo frame
-    int semIndex = findDevice((memaddr*) getFlashAddr(asid));
+    int semIndex = findDevice((memaddr*) getFlashAddr(asid)-1);
     klog_print_dec(semIndex);
     acquireDevice(asid, semIndex);
     dtpreg_t *devreg = (dtpreg_t *) getFlashAddr(asid); // mi dà l'indirizzo del registro del flash

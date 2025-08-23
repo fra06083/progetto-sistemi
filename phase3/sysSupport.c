@@ -26,6 +26,7 @@ void TerminateSYS(int asidTerminate) {
     SYSCALL(TERMINATE, 0, 0, 0); // Termina il processo corrente (dopo che il valore è stato messo in reg_a0, esegui la SYSCALL)
     //E' un wrapper, non devo fare altro
 }
+
 // print di p2test, scrive nel terminale term, msg di lunghezza lenMsg
 int printTerminal(char* msg, int lenMsg, int term) {
     termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
@@ -46,15 +47,14 @@ int printTerminal(char* msg, int lenMsg, int term) {
 int printPrinter(char* msg, int length, int devNo) {
     dtpreg_t* devReg = (dtpreg_t*)DEV_REG_ADDR(IL_FLASH, devNo);
     unsigned int status;
-    unsigned int value;
     int charSent = 0;
     while (charSent < length) { // loop di un carattere alla volta; come visto in print di p2test
-        value = PRINTCHR | (((unsigned int)*msg) << 8);
-        status = SYSCALL(DOIO, (int)&devReg->command, (int)value, 0);
-        if ((status & 0xFF) != CHARRECV) {
+        devReg->data0 = (unsigned int)*msg;
+        status = SYSCALL(DOIO, (int)&devReg->command, TRANSMITCHAR, 0);
+        if ((status & 0xFF) != READY) {
             return -status;
         }
-        msg++;
+        msg++;  
         charSent++;
     }
     return charSent;
@@ -62,27 +62,32 @@ int printPrinter(char* msg, int length, int devNo) {
 
 void writeDevice(state_t *stato, int asid, int type){
 //    termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, type);
-    print("writeDevice\n");
-    char* vAddr = (char*)stato->reg_a1;
+    char* vAddrMSG = (char*)stato->reg_a1;
+    
     int str_len = stato->reg_a2;
     //Controllo che l'indirizzo virtuale del primo char sia entro il logical U-Proc Address Space, non ecceda la lunghezza del  e che la lunghezza della stringa sia accettabile
     //In teoria nel logical U-Proc Address Space è limitato da sotto da UPROCSTARTADDR e sopra da USERSTACKTOP 
-    if((str_len < 0 || str_len > MAXSTRLENG) || vAddr < (char *) UPROCSTARTADDR || vAddr >= (char *) USERSTACKTOP) {
+    if((str_len < 0 || str_len > MAXSTRLENG) || vAddrMSG < (char *) UPROCSTARTADDR || vAddrMSG >= (char *) USERSTACKTOP) {
+        print("writeDevice: invalid address or length\n");
         TerminateSYS(asidAcquired);
         return; 
     }
     int status;
+    int deviceNo = asid-1;
     if (type == WRITETERMINAL) {
-        memaddr* indirizzo_comando = (memaddr*) stato->reg_a1;
+        print("writeDevice: writing to terminal\n");
+        memaddr* indirizzo_comando = (memaddr*)stato->reg_a1;
         int deviceIndex = findDevice(indirizzo_comando);
         acquireDevice(asid, deviceIndex);
-        status = printTerminal(vAddr, str_len, deviceIndex);
+        status = printTerminal(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
     } else if (type == WRITEPRINTER){
+        print("writeDevice: writing to printer\n");
         memaddr* indirizzo_comando = (memaddr*) stato->reg_a1;
-        int deviceIndex = findDevice(indirizzo_comando);
+        int deviceIndex = findDevice(indirizzo_comando - 1);
+        
         acquireDevice(asid, deviceIndex);
-        status = printPrinter(vAddr, str_len, deviceIndex);
+        status = printPrinter(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
     }
     //Se l'operazione ha avuto successo, in a0 c'è il numero di caratteri trasmessi 
@@ -152,6 +157,7 @@ void generalExceptionHandler(){
             break;
 
         case WRITEPRINTER: // SYS3
+            print("WRITEPRINTER\n");
             writeDevice(state, asid, WRITEPRINTER);
             break;
 
