@@ -5,9 +5,6 @@
 
 extern int asidAcquired;     
 extern int swap_mutex;             
-
-static int next_frame_index = 0; // Static x FIFO round-robin
-
 extern swap_t swap_pool[POOLSIZE]; // Swap Pool table
 
 #define VBit 1 // Valid bit

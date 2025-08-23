@@ -5,6 +5,7 @@
  */
 
 extern void klog_print(const char *str);
+extern void klog_print_dec(unsigned int num);
 //Dichiarazioni (globali) delle variabili di fase 3 (qua)
 //N.B. Nella documentazione in alcuni casi possiamo scegliere di dichiararle localmente nei file! 
 int masterSem; // alla fine dice di gestirlo così
@@ -50,7 +51,6 @@ unsigned int getPageIndex(unsigned int entry_hi)
 
 
 // Questa funzione ci serve per testare i vari componenti della fase 3 
-extern void klog_print(const char *msg);
 void p3test(){
     // initialize the swap pool as written in documentation: to access P on sem_mutex then V
 //    klog_print("Initializing swap pool and support structures...\n");

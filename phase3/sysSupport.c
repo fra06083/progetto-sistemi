@@ -10,9 +10,14 @@ void TerminateSYS(int asidTerminate) {
     if (asidAcquired != asidTerminate) {
         acquireSwapPoolTable(asidTerminate); // va fatto in mutuaesclusione!!
     }
+    for (int i = 0; i < POOLSIZE; i++) {
+        if (swap_pool[i].sw_asid == asidTerminate) {
+            swap_pool[i].sw_asid = -1;
+        }
+    }
     releaseSwapPoolTable();
 
-    int deviceIndex = supportSemAsid[asidTerminate-1]; // release device if the uprocs was holding it
+    int deviceIndex = supportSemAsid[asidTerminate-1];
     if (deviceIndex != -1) {
         releaseDevice(asidTerminate, deviceIndex);
     }
@@ -57,6 +62,7 @@ int printPrinter(char* msg, int length, int devNo) {
 
 void writeDevice(state_t *stato, int asid, int type){
 //    termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, type);
+    print("writeDevice\n");
     char* vAddr = (char*)stato->reg_a1;
     int str_len = stato->reg_a2;
     //Controllo che l'indirizzo virtuale del primo char sia entro il logical U-Proc Address Space, non ecceda la lunghezza del  e che la lunghezza della stringa sia accettabile
@@ -126,20 +132,19 @@ void readTerminal(state_t* stato, int asid){
 
 extern void klog_print(char *str);
 void generalExceptionHandler(){
-    klog_print("!!!GENERAL\n");
     support_t *sup = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
     // determiniamo la causa
     state_t* state = &(sup->sup_exceptState[GENERALEXCEPT]);
 
     //Decodifica l'eccezione: se NON è SYSCALL -> Program Trap 
-    unsigned int exccode = (state->cause & GETEXECCODE) >> CAUSESHIFT;  // mask/shift definiti in const.h
-    if (exccode != SYSEXCEPTION) {
-        supportTrapHandler(sup->sup_asid);   // Program Trap handler 
-        return;                    // non proseguire nel dispatch SYSCALL
-    }
+    //unsigned int exccode = (state->cause & GETEXECCODE) >> CAUSESHIFT;  // mask/shift definiti in const.h
+    //if (exccode != SYSEXCEPTION) {
+    //    supportTrapHandler(sup->sup_asid);   // Program Trap handler 
+    //    return;                    // non proseguire nel dispatch SYSCALL
+   // }
 
     //incremento così passo all'istruzione dopo la syscall (cap7)
-    state->pc_epc += 4; //incremento di 4 il program counter che ha causato l'eccezione
+    //state->pc_epc += 4; //incremento di 4 il program counter che ha causato l'eccezione
     int asid = sup->sup_asid;
     switch (state->reg_a0){
         case TERMINATE:   // SYS2
@@ -167,6 +172,5 @@ void generalExceptionHandler(){
 
 
 void supportTrapHandler(int asid){     
-  klog_print("Support Trap Handler invoked\n");    
   TerminateSYS(asid);
 }
