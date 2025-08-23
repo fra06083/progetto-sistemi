@@ -3,23 +3,23 @@
 #define writeFlash(asid, flashAddr, block)  FlashRW(asid, flashAddr, block, 0)
 #define readFlash(asid, flashAddr, block)   FlashRW(asid, flashAddr, block, 1)
 #define SWAP_POOL_START (RAMSTART + (64 * PAGESIZE) + (NCPU * PAGESIZE))
-static int next_frame_index = 0; // Static x FIFO round-robin
 extern void klog_print(const char *msg);
 /*
 - TLB exception handler (The Pager) [Section 4].
 - function(s) for reading and writing flash devices
 - the Swap Pool table is local to this module
 */
-
-int selectSwapFrame(){                                    // Page replacement FIFO (5.4)
-    klog_print("Frame selezionato\n"); 
+extern void klog_print_dec(unsigned int num);
+int selectSwapFrame(){     
+    static int next_frame_index = 0;// Page replacement FIFO (5.4) 
     for (int i = 0; i < POOLSIZE; i++) {
         if (swap_pool[i].sw_asid == -1) {
                 return i;
         }
     }
-    next_frame_index = (next_frame_index+1) % POOLSIZE; // "increment this variable mod the size of the Swap Pool"
-    return next_frame_index;
+    return (next_frame_index++ % POOLSIZE);
+    // "increment this variable mod the size of the Swap Pool"
+    
 }
 
 void acquire_mutexTable(int asid){
@@ -49,11 +49,10 @@ void check_updateTLB(pteEntry_t *pte){
 
 extern void klog_print_dec(unsigned int num);  
 void FlashRW(int asid, memaddr frameAddr, int block, int read){
-    print("flashRW \n");
     //Punto 9 (c)
     //Block number = VPN k (corrispondono)
     //Scrivere nel DATA0 field (del flash device) l'indirizzo fisico di partenza di un certo frame
-    int semIndex = findDevice((memaddr*) getFlashAddr(asid)-1);
+    int semIndex = findDevice((memaddr*) getFlashAddr(asid)) - 1;
     klog_print_dec(semIndex);
     acquireDevice(asid, semIndex);
     dtpreg_t *devreg = (dtpreg_t *) getFlashAddr(asid); // mi dà l'indirizzo del registro del flash
@@ -68,8 +67,7 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
         supportTrapHandler(asid);
     }
 }
-void uTLB_ExceptionHandler() {
-    print("uTLB EXCEPTION\n");  
+void uTLB_ExceptionHandler() {  
     support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       //NSYS8 (pulire commenti, uso come placeholder)
     state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)       
     if (state->cause == EXC_MOD) { // punto 4.2
@@ -98,7 +96,6 @@ void uTLB_ExceptionHandler() {
     int fr_index = selectSwapFrame();     //FCFS() recommended/RR();
     if(swap_pool[fr_index].sw_asid != -1 ){                         //asid -1 -> frame libero 
     //frame occupato, lo libero (punto 9)
-        print("frame occupato\n");
         int k = swap_pool[fr_index].sw_pageNo;                     //Virtual Page Number k del frame occupato 
         int asid_proc_x = swap_pool[fr_index].sw_asid;             //k e processo x (asid) ~ stessi nomi documentazione 
         pteEntry_t *entry = swap_pool[fr_index].sw_pte;
@@ -118,7 +115,6 @@ void uTLB_ExceptionHandler() {
             }
         */
     } 
-    print("frame non occupato\n");
     readFlash(ASID, SWAP_POOL_START + (fr_index * PAGESIZE), p);
     //Punto 10
     swap_pool[fr_index].sw_asid = ASID;                                  //Aggiorno la swap pool per dire che il frame i è occupato dal processo ASID

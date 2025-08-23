@@ -82,7 +82,7 @@ void handleDeviceInterrupt(int intLine, int devNo) {
       }
     
     // Gestione Semaforo - V operation su semaforo associato al device — Sezione 7.1.4
-    int device = findDevice((memaddr *)devAddr); // trova il dispositivo
+    int device = findDevice((memaddr *)devAddr) - 1; // trova il dispositivo
     int *semaforoV = &sem[device];  // get the semaphore of the device
     (*semaforoV)++;
     pcb_t *bloccato = removeBlocked(semaforoV); // rimuove il processo bloccato dal semaforo

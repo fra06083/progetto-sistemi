@@ -18,7 +18,7 @@ int supportSem[NSUPPSEM]; // Dal punto 9 ci servono dei semafori supporto dei de
 int supportSemAsid[UPROCMAX];
 
 void acquireDevice(int asid, int devIndex) {
-    klog_print("Acquire Device \n");
+    klog_print("Acquire Device No. ");
     int* sem = &supportSem[devIndex];
     SYSCALL(PASSEREN, (int)sem, 0, 0);
     supportSemAsid[asid-1] = devIndex;
@@ -30,12 +30,10 @@ void releaseDevice(int asid, int deviceIndex) {
 }
 
 void acquireSwapPoolTable(int asid) {
-    klog_print("Acquire SWAP \n");
     SYSCALL(PASSEREN, (int)&swap_mutex, 0, 0);
     asidAcquired = asid;
 }
 void releaseSwapPoolTable() {
-    klog_print("RELEASE SWAP \n");
     asidAcquired = -1;
     SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0);
 }

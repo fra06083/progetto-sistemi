@@ -36,6 +36,7 @@ int printTerminal(char* msg, int lenMsg, int term) {
     while (charSent < lenMsg) { // loop di un carattere alla volta; come visto in print di p2test
         value = PRINTCHR | (((unsigned int)*msg) << 8);
         status = SYSCALL(DOIO, (int)&devReg->transm_command, (int)value, 0);
+        
         if ((status & 0xFF) != CHARRECV) {
             return -status;
         }
@@ -75,16 +76,17 @@ void writeDevice(state_t *stato, int asid, int type){
     int status;
     int deviceNo = asid-1;
     if (type == WRITETERMINAL) {
-        print("writeDevice: writing to terminal\n");
-        memaddr* indirizzo_comando = (memaddr*)stato->reg_a1;
-        int deviceIndex = findDevice(indirizzo_comando);
+        memaddr* indirizzo_comando = (memaddr*)DEV_REG_ADDR(IL_TERMINAL, deviceNo);
+        int deviceIndex = findDevice(indirizzo_comando) - 1;
         acquireDevice(asid, deviceIndex);
         status = printTerminal(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
+        if (status == 1) {
+            print("writeDevice: error writing to terminal\n");
+        }
     } else if (type == WRITEPRINTER){
-        print("writeDevice: writing to printer\n");
-        memaddr* indirizzo_comando = (memaddr*) stato->reg_a1;
-        int deviceIndex = findDevice(indirizzo_comando - 1);
+        memaddr* indirizzo_comando = (memaddr*)DEV_REG_ADDR(IL_PRINTER, deviceNo);
+        int deviceIndex = findDevice(indirizzo_comando) - 1;
         
         acquireDevice(asid, deviceIndex);
         status = printPrinter(vAddrMSG, str_len, deviceNo);
@@ -115,20 +117,16 @@ int inputFromTerminal(char* addr, int term) {
 }
 void readTerminal(state_t* stato, int asid){
     char *vAddr = (char *) stato->reg_a1; 
-    if(vAddr < (char *) UPROCSTARTADDR || vAddr >= (char *) USERSTACKTOP) {
+    if(vAddr < (char *) KUSEG || vAddr >= (char *) USERSTACKTOP) {
         TerminateSYS(asidAcquired);
         return; 
     }
     int devNo = asid-1;
-    int deviceIndex = findDevice((memaddr*) stato->reg_a1);
+    int deviceIndex = findDevice((memaddr*)DEV_REG_ADDR(IL_TERMINAL, devNo)) - 1;
     acquireDevice(asid, deviceIndex);
     int status = inputFromTerminal(vAddr, devNo);
     releaseDevice(asid, deviceIndex);
     stato->reg_a0 = status;
-   // if(status != 5){
-   //     stato->reg_a0 = -retStatus; 
-   // }
-    //Qua dice che in a0 deve esserci il numero dei caratteri della stringa, qua come si ricava? 
     stato->pc_epc += 4; 
     LDST(stato);
 }
@@ -157,7 +155,6 @@ void generalExceptionHandler(){
             break;
 
         case WRITEPRINTER: // SYS3
-            print("WRITEPRINTER\n");
             writeDevice(state, asid, WRITEPRINTER);
             break;
 
