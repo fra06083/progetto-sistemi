@@ -116,11 +116,10 @@ void p3test(){
     }
 
     for (int i = 0; i < UPROCMAX; i++) { // P così aspetta che termini
-        print("Waiting for process to terminate...\n");
+       // print("Waiting for process to terminate...\n");
 
         SYSCALL(PASSEREN, (int)&masterSem, 0, 0);
     }
-
     print("Dovrebbe essere finito qui, terminiamo il processo principale\n");
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }

@@ -63,6 +63,7 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
     releaseDevice(asid, semIndex);
     int error = read ? 4 : 5; // 4: FLASHREAD_ERROR, 5: FLASHWRITE_ERROR
     if ((status & 0XFF) == error) { 
+        print("ERROR!\n");
         release_mutexTable();
         supportTrapHandler(asid);
     }
@@ -71,6 +72,7 @@ void uTLB_ExceptionHandler() {
     support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       //NSYS8 (pulire commenti, uso come placeholder)
     state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)       
     if (state->cause == EXC_MOD) { // punto 4.2
+        print("ERROR!\n");
       supportTrapHandler(sup_ptr->sup_asid);
       return; // Non proseguire nel dispatch SYSCALL 
     }

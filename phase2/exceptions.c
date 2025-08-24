@@ -173,6 +173,7 @@ void DoIO(state_t *stato, unsigned int p_id){
   if (indirizzo_comando == NULL) {
     stato->reg_a0 = -1;  // ritorna -1 se nullo
     stato->pc_epc += 4;  // incrementa il program counter
+    klog_print("indirizzo_comando nullo\n");
     RELEASE_LOCK(&global_lock);
     LDST(stato);
     return;

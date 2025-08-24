@@ -6,6 +6,8 @@
 */
 // Punto 6/7
 extern int masterSem;
+extern void klog_print(const char *str);
+extern void klog_print_dec(unsigned int num);
 void TerminateSYS(int asidTerminate) {
     if (asidAcquired != asidTerminate) {
         acquireSwapPoolTable(asidTerminate); // va fatto in mutuaesclusione!!
@@ -68,8 +70,8 @@ void writeDevice(state_t *stato, int asid, int type){
     int str_len = stato->reg_a2;
     //Controllo che l'indirizzo virtuale del primo char sia entro il logical U-Proc Address Space, non ecceda la lunghezza del  e che la lunghezza della stringa sia accettabile
     //In teoria nel logical U-Proc Address Space è limitato da sotto da UPROCSTARTADDR e sopra da USERSTACKTOP 
-    if((str_len < 0 || str_len > MAXSTRLENG) || vAddrMSG < (char *) UPROCSTARTADDR || vAddrMSG >= (char *) USERSTACKTOP) {
-        print("writeDevice: invalid address or length\n");
+    if((str_len < 0 || str_len > MAXSTRLENG) || vAddrMSG < (char *) KUSEG || vAddrMSG >= (char *) USERSTACKTOP) {
+       // print("writeDevice: invalid address or length\n");
         TerminateSYS(asidAcquired);
         return; 
     }
@@ -82,7 +84,7 @@ void writeDevice(state_t *stato, int asid, int type){
         status = printTerminal(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
         if (status == 1) {
-            print("writeDevice: error writing to terminal\n");
+          //  print("writeDevice: error writing to terminal\n");
         }
     } else if (type == WRITEPRINTER){
         memaddr* indirizzo_comando = (memaddr*)DEV_REG_ADDR(IL_PRINTER, deviceNo);
@@ -91,18 +93,29 @@ void writeDevice(state_t *stato, int asid, int type){
         acquireDevice(asid, deviceIndex);
         status = printPrinter(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
+        if (status == 1) {
+         klog_print("writeDevice: error writing to printer\n");
+        }
     }
     //Se l'operazione ha avuto successo, in a0 c'è il numero di caratteri trasmessi 
     stato->reg_a0 = status;
     stato->pc_epc += 4; // incrementa il program counter
     LDST(stato); // ripristina lo stato del processo corrente (va messo in teoria anche se non scritto perchè il processo viene sospeso)
 }
-
+extern void klog_print_hex(unsigned int value);
 // riceve da terminale e salva su address
 int inputFromTerminal(char* addr, int term) {
+   // klog_print("Reading INPUT from terminal...\n");
+    klog_print("term: ");
+    klog_print_dec(term);
+    klog_print("\n");
     termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
+    klog_print("devReg address: ");
+    klog_print_hex((unsigned int)devReg);
+    klog_print("\n");
     int str_len = 0;
     while (1) { // legge finché non \n!!!
+        
         int status = SYSCALL(DOIO, (int)&devReg->recv_command, RECEIVECHAR, 0);
         if ((status & 0xFF) != CHARRECV) {
             return -status;
@@ -116,8 +129,10 @@ int inputFromTerminal(char* addr, int term) {
     return str_len;
 }
 void readTerminal(state_t* stato, int asid){
+    klog_print_dec(asid);
     char *vAddr = (char *) stato->reg_a1; 
     if(vAddr < (char *) KUSEG || vAddr >= (char *) USERSTACKTOP) {
+        klog_print("ERROR!\n");
         TerminateSYS(asidAcquired);
         return; 
     }
@@ -133,7 +148,6 @@ void readTerminal(state_t* stato, int asid){
 
 
 
-extern void klog_print(char *str);
 void generalExceptionHandler(){
     support_t *sup = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
     // determiniamo la causa
@@ -174,6 +188,7 @@ void generalExceptionHandler(){
 
 
 
-void supportTrapHandler(int asid){     
+void supportTrapHandler(int asid){ 
+    print("SUPPORT TRAP richiamato\n");    
   TerminateSYS(asid);
 }
