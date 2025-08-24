@@ -9,6 +9,14 @@ extern int masterSem;
 extern void klog_print(const char *str);
 extern void klog_print_dec(unsigned int num);
 void TerminateSYS(int asidTerminate) {
+    static int alreadyKilled[UPROCMAX] = {0};
+
+    if (alreadyKilled[asidTerminate-1]) { // se quell'asid era stato già terminato, non rimandare v masterSem
+        // Già terminato → non fare nulla
+        SYSCALL(TERMPROCESS, 0, 0, 0);
+    }
+    alreadyKilled[asidTerminate-1] = 1;
+    
     if (asidAcquired != asidTerminate) {
         acquireSwapPoolTable(asidTerminate); // va fatto in mutuaesclusione!!
     }
@@ -188,7 +196,6 @@ void generalExceptionHandler(){
 
 
 
-void supportTrapHandler(int asid){ 
-    print("SUPPORT TRAP richiamato\n");    
+void supportTrapHandler(int asid){    
   TerminateSYS(asid);
 }
