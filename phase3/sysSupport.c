@@ -73,7 +73,7 @@ void writeDevice(state_t *stato, int asid, int type){
     if((str_len < 0 || str_len > MAXSTRLENG) || vAddrMSG < (char *) KUSEG || vAddrMSG >= (char *) USERSTACKTOP) {
        // print("writeDevice: invalid address or length\n");
         TerminateSYS(asidAcquired);
-        return; 
+    //    return; 
     }
     int status;
     int deviceNo = asid-1;
@@ -125,7 +125,7 @@ void readTerminal(state_t* stato, int asid){
     char *vAddr = (char *) stato->reg_a1; 
     if(vAddr < (char *) KUSEG || vAddr >= (char *) USERSTACKTOP) {
         TerminateSYS(asidAcquired);
-        return; 
+      //  return; 
     }
     int devNo = asid-1;
     int deviceIndex = findDevice((memaddr*)DEV_REG_ADDR(IL_TERMINAL, devNo)) - 1;
@@ -145,10 +145,10 @@ void generalExceptionHandler(){
     state_t* state = &(sup->sup_exceptState[GENERALEXCEPT]);
 
     //Decodifica l'eccezione: se NON è SYSCALL -> Program Trap 
-   /* unsigned int exccode = (state->cause & GETEXECCODE) >> CAUSESHIFT;  // mask/shift definiti in const.h
+    unsigned int exccode = (state->cause & GETEXECCODE);  // mask/shift definiti in const.h
     if (exccode != SYSEXCEPTION) {
         supportTrapHandler(sup->sup_asid);   // Program Trap handler 
-        return;                    // non proseguire nel dispatch SYSCALL
+      //  return;                    // non proseguire nel dispatch SYSCALL
     }
     */
     //incremento così passo all'istruzione dopo la syscall (cap7)
