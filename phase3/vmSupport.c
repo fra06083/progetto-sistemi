@@ -3,13 +3,13 @@
 #define writeFlash(asid, flashAddr, block)  FlashRW(asid, flashAddr, block, 0)
 #define readFlash(asid, flashAddr, block)   FlashRW(asid, flashAddr, block, 1)
 #define SWAP_POOL_START (RAMSTART + (64 * PAGESIZE) + (NCPU * PAGESIZE))
-extern void klog_print(const char *msg);
+
 /*
 - TLB exception handler (The Pager) [Section 4].
 - function(s) for reading and writing flash devices
 - the Swap Pool table is local to this module
 */
-extern void klog_print_dec(unsigned int num);
+
 int selectSwapFrame(){     
     static int next_frame_index = 0;// Page replacement FIFO (5.4) 
     for (int i = 0; i < POOLSIZE; i++) {
@@ -47,13 +47,11 @@ void check_updateTLB(pteEntry_t *pte){
 }
 
 
-extern void klog_print_dec(unsigned int num);  
 void FlashRW(int asid, memaddr frameAddr, int block, int read){
     //Punto 9 (c)
     //Block number = VPN k (corrispondono)
     //Scrivere nel DATA0 field (del flash device) l'indirizzo fisico di partenza di un certo frame
     int semIndex = findDevice((memaddr*) getFlashAddr(asid)) - 1;
-    klog_print_dec(semIndex);
     acquireDevice(asid, semIndex);
     dtpreg_t *devreg = (dtpreg_t *) getFlashAddr(asid); // mi dà l'indirizzo del registro del flash
     int commandAddr = (int)&devreg->command;
@@ -63,16 +61,15 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
     releaseDevice(asid, semIndex);
     int error = read ? 4 : 5; // 4: FLASHREAD_ERROR, 5: FLASHWRITE_ERROR
     if ((status & 0XFF) == error) { 
-        print("ERROR!\n");
         release_mutexTable();
         supportTrapHandler(asid);
+        return;                     //AGGIUNTO
     }
 }
 void uTLB_ExceptionHandler() {  
     support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       //NSYS8 (pulire commenti, uso come placeholder)
     state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)       
     if (state->cause == EXC_MOD) { // punto 4.2
-        print("ERROR!\n");
       supportTrapHandler(sup_ptr->sup_asid);
       return; // Non proseguire nel dispatch SYSCALL 
     }
@@ -83,19 +80,22 @@ void uTLB_ExceptionHandler() {
     int i; 
     for (i = 0; i < POOLSIZE && !trovato; i++){
         unsigned int sw_asid = swap_pool[i].sw_asid;
-        if (sw_asid == ASID && swap_pool[i].sw_pageNo == p)
+        if (sw_asid == ASID && swap_pool[i].sw_pageNo == p){
             trovato = TRUE;
+            break;
+        }   
     }
-    if (trovato) {
+    if (trovato) {  
         check_updateTLB(swap_pool[i].sw_pte);                           
         if (sup_ptr->sup_privatePgTbl[p].pte_entryLO & ENTRYLO_VALID) { // controlliamo se è valido, rilasciamo e ricarichiamo
             release_mutexTable();
             LDST(state);
+            acquire_mutexTable(ASID);           //AGGIUNTA
         } 
-    }  
+    }
     // ... continua punto 7         
     // Seleziona un frame dalla Swap Pool usando l'algoritmo di page replacement 
-    int fr_index = selectSwapFrame();     //FCFS() recommended/RR();
+    int fr_index = selectSwapFrame();     
     if(swap_pool[fr_index].sw_asid != -1 ){                         //asid -1 -> frame libero 
     //frame occupato, lo libero (punto 9)
         int k = swap_pool[fr_index].sw_pageNo;                     //Virtual Page Number k del frame occupato 
@@ -123,8 +123,14 @@ void uTLB_ExceptionHandler() {
     swap_pool[fr_index].sw_pageNo = p;                                   //Aggiorno la swap pool per dire che il frame i contiene la pagina p
     swap_pool[fr_index].sw_pte = &(sup_ptr->sup_privatePgTbl[p]);
     swap_pool[fr_index].sw_pte->pte_entryLO |= VALIDON; // valida page p OR BIT
-    swap_pool[fr_index].sw_pte->pte_entryLO &= ~ENTRYLO_PFN_MASK; // imposta pfn 0 // AND tra quello esistente e negato
-    swap_pool[fr_index].sw_pte->pte_entryLO |= (SWAP_POOL_START + (fr_index * PAGESIZE)); // imposta la pfn all'indirizzo del frame
+ 
+    //Aggiunte tre righe 
+    swap_pool[fr_index].sw_pte->pte_entryLO &= ~ENTRYLO_PFN_MASK; 
+    unsigned int pfn = (SWAP_POOL_START + (fr_index * PAGESIZE)) >> ENTRYLO_PFN_BIT;
+    swap_pool[fr_index].sw_pte->pte_entryLO |= (pfn << ENTRYLO_PFN_BIT) & ENTRYLO_PFN_MASK;
+
+    //swap_pool[fr_index].sw_pte->pte_entryLO &= ~ENTRYLO_PFN_MASK; // imposta pfn 0 // AND tra quello esistente e negato           //commentato
+    //swap_pool[fr_index].sw_pte->pte_entryLO |= (SWAP_POOL_START + (fr_index * PAGESIZE)); // imposta la pfn all'indirizzo del frame    //commentato
     //Devo aggiornare il PFN field nella pte_entry_LO della pagina p del processo ASID
     //Aggiorno la TLB
     check_updateTLB(swap_pool[fr_index].sw_pte);

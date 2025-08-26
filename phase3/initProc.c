@@ -18,7 +18,6 @@ int supportSem[NSUPPSEM]; // Dal punto 9 ci servono dei semafori supporto dei de
 int supportSemAsid[UPROCMAX];
 
 void acquireDevice(int asid, int devIndex) {
-    klog_print("Acquire Device No. ");
     int* sem = &supportSem[devIndex];
     SYSCALL(PASSEREN, (int)sem, 0, 0);
     supportSemAsid[asid-1] = devIndex;
@@ -116,7 +115,7 @@ void p3test(){
     }
 
     for (int i = 0; i < UPROCMAX; i++) { // P così aspetta che termini
-       // print("Waiting for process to terminate...\n");
+        //print("Waiting for process to terminate...\n");
 
         SYSCALL(PASSEREN, (int)&masterSem, 0, 0);
     }

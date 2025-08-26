@@ -6,18 +6,17 @@
 */
 // Punto 6/7
 extern int masterSem;
-extern void klog_print(const char *str);
-extern void klog_print_dec(unsigned int num);
 void TerminateSYS(int asidTerminate) {
     static int alreadyKilled[UPROCMAX] = {0};
-
+    /*
     if (alreadyKilled[asidTerminate-1]) { // se quell'asid era stato già terminato, non rimandare v masterSem
-        // Già terminato → non fare nulla
-        SYSCALL(TERMPROCESS, 0, 0, 0);
-    }
+        return; 
+    } */
     alreadyKilled[asidTerminate-1] = 1;
     
+    int ok_swap = 0;
     if (asidAcquired != asidTerminate) {
+        ok_swap = 1;
         acquireSwapPoolTable(asidTerminate); // va fatto in mutuaesclusione!!
     }
     for (int i = 0; i < POOLSIZE; i++) {
@@ -25,7 +24,7 @@ void TerminateSYS(int asidTerminate) {
             swap_pool[i].sw_asid = -1;
         }
     }
-    releaseSwapPoolTable();
+    if(ok_swap) releaseSwapPoolTable();
 
     int deviceIndex = supportSemAsid[asidTerminate-1];
     if (deviceIndex != -1) {
@@ -35,6 +34,7 @@ void TerminateSYS(int asidTerminate) {
     SYSCALL(VERHOGEN, (int)&masterSem, 0, 0); // dobbiamo fare una V al masterSem quando terminiamo un processo
     SYSCALL(TERMINATE, 0, 0, 0); // Termina il processo corrente (dopo che il valore è stato messo in reg_a0, esegui la SYSCALL)
     //E' un wrapper, non devo fare altro
+
 }
 
 // print di p2test, scrive nel terminale term, msg di lunghezza lenMsg
@@ -63,7 +63,7 @@ int printPrinter(char* msg, int length, int devNo) {
         devReg->data0 = (unsigned int)*msg;
         status = SYSCALL(DOIO, (int)&devReg->command, TRANSMITCHAR, 0);
         if ((status & 0xFF) != READY) {
-            return -status;
+            devReg->status = -status;
         }
         msg++;  
         charSent++;
@@ -101,26 +101,19 @@ void writeDevice(state_t *stato, int asid, int type){
         acquireDevice(asid, deviceIndex);
         status = printPrinter(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
-        if (status == 1) {
-         klog_print("writeDevice: error writing to printer\n");
-        }
+     if (status != 1) {
+            stato->reg_a0 = -status;     
+        }  
     }
     //Se l'operazione ha avuto successo, in a0 c'è il numero di caratteri trasmessi 
     stato->reg_a0 = status;
     stato->pc_epc += 4; // incrementa il program counter
     LDST(stato); // ripristina lo stato del processo corrente (va messo in teoria anche se non scritto perchè il processo viene sospeso)
 }
-extern void klog_print_hex(unsigned int value);
+
 // riceve da terminale e salva su address
 int inputFromTerminal(char* addr, int term) {
-   // klog_print("Reading INPUT from terminal...\n");
-    klog_print("term: ");
-    klog_print_dec(term);
-    klog_print("\n");
     termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
-    klog_print("devReg address: ");
-    klog_print_hex((unsigned int)devReg);
-    klog_print("\n");
     int str_len = 0;
     while (1) { // legge finché non \n!!!
         
@@ -137,10 +130,8 @@ int inputFromTerminal(char* addr, int term) {
     return str_len;
 }
 void readTerminal(state_t* stato, int asid){
-    klog_print_dec(asid);
     char *vAddr = (char *) stato->reg_a1; 
     if(vAddr < (char *) KUSEG || vAddr >= (char *) USERSTACKTOP) {
-        klog_print("ERROR!\n");
         TerminateSYS(asidAcquired);
         return; 
     }
@@ -162,12 +153,12 @@ void generalExceptionHandler(){
     state_t* state = &(sup->sup_exceptState[GENERALEXCEPT]);
 
     //Decodifica l'eccezione: se NON è SYSCALL -> Program Trap 
-    //unsigned int exccode = (state->cause & GETEXECCODE) >> CAUSESHIFT;  // mask/shift definiti in const.h
-    //if (exccode != SYSEXCEPTION) {
-    //    supportTrapHandler(sup->sup_asid);   // Program Trap handler 
-    //    return;                    // non proseguire nel dispatch SYSCALL
-   // }
-
+   /* unsigned int exccode = (state->cause & GETEXECCODE) >> CAUSESHIFT;  // mask/shift definiti in const.h
+    if (exccode != SYSEXCEPTION) {
+        supportTrapHandler(sup->sup_asid);   // Program Trap handler 
+        return;                    // non proseguire nel dispatch SYSCALL
+    }
+    */
     //incremento così passo all'istruzione dopo la syscall (cap7)
     //state->pc_epc += 4; //incremento di 4 il program counter che ha causato l'eccezione
     int asid = sup->sup_asid;
