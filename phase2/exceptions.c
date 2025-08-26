@@ -111,38 +111,37 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
 }
 
 void P(state_t* stato, unsigned int p_id) {
-
+  ACQUIRE_LOCK(&global_lock);
   int *semaforo = (int *) stato->reg_a1;
 
   if (*semaforo == 0) {
       // Blocca il processo corrente
       pcb_t* pcbBlocked = current_process[p_id];
-      ACQUIRE_LOCK(&global_lock);
       insertBlocked(semaforo, pcbBlocked);  // inserisci il processo nella lista dei bloccati
       block(stato, p_id, pcbBlocked);  // blocca il processo corrente
       RELEASE_LOCK(&global_lock);
       scheduler(); 
       return;  // ritorna e non continuare l'esecuzione del processo corrente
   } else if (*semaforo == 1) {
-      ACQUIRE_LOCK(&global_lock);
       pcb_t* processo_sbloccato = removeBlocked(semaforo);  // sblocca il processo in attesa
       if (processo_sbloccato != NULL) {
         insertProcQ(&pcbReady, processo_sbloccato);  // metti il processo nella coda dei ready
       } else {
         *semaforo = 0; // sennò imposta a 0
       }
-      RELEASE_LOCK(&global_lock);
+      
   }
+  RELEASE_LOCK(&global_lock);
   stato->pc_epc += 4;  // incrementa il program counter
   LDST(stato);  // ripristina lo stato del processo
 }
 
 void V(state_t* stato, unsigned int p_id) {
-
+  ACQUIRE_LOCK(&global_lock);
   int *semaforo = (int *) stato->reg_a1;
   if (*semaforo == 1){
   // Se il semaforo è maggiore di 1, blocca il processo chiamante (V bloccante)
-    ACQUIRE_LOCK(&global_lock);
+    
     insertBlocked(semaforo, current_process[p_id]);
     block(stato, p_id, current_process[p_id]);  // blocca il processo corrente
     RELEASE_LOCK(&global_lock);
@@ -151,15 +150,14 @@ void V(state_t* stato, unsigned int p_id) {
 
   } else if (*semaforo == 0) {
     // Sblocca il processo in attesa
-    ACQUIRE_LOCK(&global_lock);
     pcb_t* processo_sbloccato = removeBlocked(semaforo);
     if (processo_sbloccato != NULL) {
         insertProcQ(&pcbReady, processo_sbloccato);  // metti il processo nella coda dei ready
     } else {
       *semaforo = 1;
     }
-    RELEASE_LOCK(&global_lock);
   }
+  RELEASE_LOCK(&global_lock);
   stato->pc_epc += 4;  // incrementa il program counter
   LDST(stato);  // ripristina lo stato del processo
 }

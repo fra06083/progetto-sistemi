@@ -15,6 +15,4 @@ extern void acquire_mutexTable(int asid);
 extern void release_mutexTable();
 void uTLB_ExceptionHandler();
 int selectSwapFrame();
-void acquire_mutexTable(int asid);
-void release_mutexTable();
 #endif

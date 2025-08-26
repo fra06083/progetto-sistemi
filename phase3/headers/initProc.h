@@ -16,6 +16,6 @@ unsigned int getPageIndex(unsigned int entry_hi);
 extern void print(char *msg);
 void acquireDevice(int asid, int deviceIndex);
 void releaseDevice();
-void acquireSwapPoolTable(int asid);
-void releaseSwapPoolTable();
+void acquire_mutexTable(int asid);
+void release_mutexTable();
 #endif

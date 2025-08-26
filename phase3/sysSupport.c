@@ -7,26 +7,18 @@
 // Punto 6/7
 extern int masterSem;
 void TerminateSYS(int asidTerminate) {
-    static int alreadyKilled[UPROCMAX] = {0};
-    /*
-    if (alreadyKilled[asidTerminate-1]) { // se quell'asid era stato già terminato, non rimandare v masterSem
-        return; 
-    } */
-    alreadyKilled[asidTerminate-1] = 1;
-    
-    int ok_swap = 0;
-    if (asidAcquired != asidTerminate) {
-        ok_swap = 1;
-        acquireSwapPoolTable(asidTerminate); // va fatto in mutuaesclusione!!
+ if (asidAcquired != asidTerminate) {
+        acquire_mutexTable(asidTerminate);
     }
     for (int i = 0; i < POOLSIZE; i++) {
-        if (swap_pool[i].sw_asid == asidTerminate) {
-            swap_pool[i].sw_asid = -1;
+        swap_t *swap = &swap_pool[i];
+        if (swap->sw_asid == asidTerminate) {
+            swap->sw_asid = -1;
         }
     }
-    if(ok_swap) releaseSwapPoolTable();
+    release_mutexTable();
 
-    int deviceIndex = supportSemAsid[asidTerminate-1];
+    int deviceIndex = supportSemAsid[asidTerminate-1]; // rilasciamo
     if (deviceIndex != -1) {
         releaseDevice(asidTerminate, deviceIndex);
     }

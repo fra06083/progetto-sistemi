@@ -22,14 +22,6 @@ int selectSwapFrame(){
     
 }
 
-void acquire_mutexTable(int asid){
-    SYSCALL(PASSEREN, (int)&swap_mutex, 0, 0);
-    asidAcquired = asid;
-}
-void release_mutexTable(){
-    SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0);
-    asidAcquired = -1;
-}
 
 void check_updateTLB(pteEntry_t *pte){
     //Metto l'entry della page Table del processo corrente, guardo se è nella TLB

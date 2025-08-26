@@ -27,14 +27,13 @@ void releaseDevice(int asid, int deviceIndex) {
     supportSemAsid[asid-1] = -1;
     SYSCALL(VERHOGEN, (int)sem, 0, 0);
 }
-
-void acquireSwapPoolTable(int asid) {
+void acquire_mutexTable(int asid){
     SYSCALL(PASSEREN, (int)&swap_mutex, 0, 0);
     asidAcquired = asid;
 }
-void releaseSwapPoolTable() {
-    asidAcquired = -1;
+void release_mutexTable(){
     SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0);
+    asidAcquired = -1;
 }
 unsigned int getPageIndex(unsigned int entry_hi)
 {
