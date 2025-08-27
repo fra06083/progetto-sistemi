@@ -5,18 +5,21 @@
 - Program Trap exception handler [Section 8].
 */
 // Punto 6/7
+extern void klog_print(const char *str);
+extern void klog_print_dec(unsigned int num);
 extern int masterSem;
 void TerminateSYS(int asidTerminate) {
- if (asidAcquired != asidTerminate) {
+   /* if (asidAcquired != asidTerminate) {
         acquire_mutexTable(asidTerminate);
-    }
+    }*/
+    acquire_mutexTable(asidTerminate);
     for (int i = 0; i < POOLSIZE; i++) {
         swap_t *swap = &swap_pool[i];
         if (swap->sw_asid == asidTerminate) {
             swap->sw_asid = -1;
         }
     }
-    release_mutexTable();
+    release_mutexTable();         //AGGIUNTO IF: non cambia nulla 
 
     int deviceIndex = supportSemAsid[asidTerminate-1]; // rilasciamo
     if (deviceIndex != -1) {
@@ -48,7 +51,7 @@ int printTerminal(char* msg, int lenMsg, int term) {
     return charSent;
 }
 int printPrinter(char* msg, int length, int devNo) {
-    dtpreg_t* devReg = (dtpreg_t*)DEV_REG_ADDR(IL_FLASH, devNo);
+    dtpreg_t* devReg = (dtpreg_t*)DEV_REG_ADDR(IL_PRINTER, devNo);
     unsigned int status;
     int charSent = 0;
     while (charSent < length) { // loop di un carattere alla volta; come visto in print di p2test
@@ -72,7 +75,7 @@ void writeDevice(state_t *stato, int asid, int type){
     //In teoria nel logical U-Proc Address Space è limitato da sotto da UPROCSTARTADDR e sopra da USERSTACKTOP 
     if((str_len < 0 || str_len > MAXSTRLENG) || vAddrMSG < (char *) KUSEG || vAddrMSG >= (char *) USERSTACKTOP) {
        // print("writeDevice: invalid address or length\n");
-        TerminateSYS(asidAcquired);
+        TerminateSYS(asid);
     //    return; 
     }
     int status;
@@ -89,7 +92,6 @@ void writeDevice(state_t *stato, int asid, int type){
     } else if (type == WRITEPRINTER){
         memaddr* indirizzo_comando = (memaddr*)DEV_REG_ADDR(IL_PRINTER, deviceNo);
         int deviceIndex = findDevice(indirizzo_comando) - 1;
-        
         acquireDevice(asid, deviceIndex);
         status = printPrinter(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
@@ -124,7 +126,7 @@ int inputFromTerminal(char* addr, int term) {
 void readTerminal(state_t* stato, int asid){
     char *vAddr = (char *) stato->reg_a1; 
     if(vAddr < (char *) KUSEG || vAddr >= (char *) USERSTACKTOP) {
-        TerminateSYS(asidAcquired);
+        TerminateSYS(asid);
       //  return; 
     }
     int devNo = asid-1;
@@ -138,7 +140,6 @@ void readTerminal(state_t* stato, int asid){
 }
 
 
-
 void generalExceptionHandler(){
     support_t *sup = (support_t *) SYSCALL(GETSUPPORTPTR, 0, 0, 0);
     // determiniamo la causa
@@ -148,30 +149,39 @@ void generalExceptionHandler(){
     unsigned int exccode = (state->cause & GETEXECCODE);  // mask/shift definiti in const.h
     if (exccode != SYSEXCEPTION) {
         supportTrapHandler(sup->sup_asid);   // Program Trap handler 
-      //  return;                    // non proseguire nel dispatch SYSCALL
+        return;                    // non proseguire nel dispatch SYSCALL       //AGGIUNTO
     }
-    */
     //incremento così passo all'istruzione dopo la syscall (cap7)
     //state->pc_epc += 4; //incremento di 4 il program counter che ha causato l'eccezione
     int asid = sup->sup_asid;
     switch (state->reg_a0){
         case TERMINATE:   // SYS2
+//           klog_print(" TERMINATE "); 
+//            klog_print_dec(asid);
             TerminateSYS(asid);
             break;
 
         case WRITEPRINTER: // SYS3
+//              klog_print(" WRITEPRINTER "); 
+//            klog_print_dec(asid);
             writeDevice(state, asid, WRITEPRINTER);
             break;
 
         case WRITETERMINAL: // SYS4
+//              klog_print(" WRITETERMINAL "); 
+//            klog_print_dec(asid);
             writeDevice(state, asid, WRITETERMINAL);
             break;
 
         case READTERMINAL:  // SYS5
+//             klog_print(" READTERMINAL "); 
+//            klog_print_dec(asid);
             readTerminal(state, asid); 
             break;
 
         default:
+//              klog_print(" TRAP "); 
+//            klog_print_dec(asid);
             supportTrapHandler(sup->sup_asid);
             break;
     }

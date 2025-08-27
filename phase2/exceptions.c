@@ -171,7 +171,6 @@ void DoIO(state_t *stato, unsigned int p_id){
   if (indirizzo_comando == NULL) {
     stato->reg_a0 = -1;  // ritorna -1 se nullo
     stato->pc_epc += 4;  // incrementa il program counter
-    klog_print("indirizzo_comando nullo\n");
     RELEASE_LOCK(&global_lock);
     LDST(stato);
     return;
@@ -260,7 +259,6 @@ RELEASE_LOCK on the Global Lock, in order to avoid race condition.
 int p_id = getPRID();
 int registro = stato->reg_a0;
 if (registro > 0){
-  klog_print("registro > 0");
   passupordie(GENERALEXCEPT, stato);
 }
 if (!(stato->status & MSTATUS_MPP_MASK)) { // E' in user mode (fase 3??)
@@ -307,7 +305,6 @@ switch (registro){
     GetProcessId(stato, p_id); 
     break;
    default:
-    klog_print("ERROR!");
     PANIC(); // Se non è nessuna delle syscall allora PANIC, non dovrebbe arrivare mai qui
     break;
    }

@@ -10,6 +10,9 @@
 - the Swap Pool table is local to this module
 */
 
+extern void klog_print(const char *str);
+extern void klog_print_dec(unsigned int num);
+
 int selectSwapFrame(){     
     static int next_frame_index = 0;// Page replacement FIFO (5.4) 
     for (int i = 0; i < POOLSIZE; i++) {
@@ -69,7 +72,7 @@ void uTLB_ExceptionHandler() {
     unsigned int ASID = sup_ptr->sup_asid;                                   // ASID: asid current process
     acquire_mutexTable(ASID);                                                // punto 4 (4.2 Pager)
     int trovato = FALSE;
-    int i; 
+    int i;    
     for (i = 0; i < POOLSIZE && !trovato; i++){
         unsigned int sw_asid = swap_pool[i].sw_asid;
         if (sw_asid == ASID && swap_pool[i].sw_pageNo == p){
@@ -82,9 +85,9 @@ void uTLB_ExceptionHandler() {
         if (sup_ptr->sup_privatePgTbl[p].pte_entryLO & ENTRYLO_VALID) { // controlliamo se è valido, rilasciamo e ricarichiamo
             release_mutexTable();
             LDST(state);
-            acquire_mutexTable(ASID);           //AGGIUNTA
-        } 
-    }
+        }
+    }else release_mutexTable();
+    acquire_mutexTable(ASID);
     // ... continua punto 7         
     // Seleziona un frame dalla Swap Pool usando l'algoritmo di page replacement 
     int fr_index = selectSwapFrame();     
