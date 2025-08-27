@@ -15,7 +15,7 @@ extern int sem[SEMDEVLEN];
 int getDevNo(int IntlineNo);
 int getIntLineNo(int intCode);
 void interruptHandler(int intCode, state_t *stato);
-void handleDeviceInterrupt(int intLineNo, int devNo);
+void handleDeviceInterrupt(int intLineNo, state_t *stato);
 void handlePLTInterrupt();
 void handleIntervalTimerInterrupt();
 

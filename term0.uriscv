@@ -1,2 +1,9 @@
 Strcat Test starts
 Enter a string: Dovrebbe essere finito qui, terminiamo il processo principale
+ciao
+
+Enter another string: ciao
+ciaociao
+
+
+Strcat concluded

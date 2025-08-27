@@ -9,16 +9,16 @@ extern void klog_print(const char *str);
 extern void klog_print_dec(unsigned int num);
 extern int masterSem;
 void TerminateSYS(int asidTerminate) {
-   /* if (asidAcquired != asidTerminate) {
+    if (asidAcquired != asidTerminate) {
         acquire_mutexTable(asidTerminate);
-    }*/
-    acquire_mutexTable(asidTerminate);
+    }
+    //acquire_mutexTable(asidTerminate);
     for (int i = 0; i < POOLSIZE; i++) {
         swap_t *swap = &swap_pool[i];
         if (swap->sw_asid == asidTerminate) {
             swap->sw_asid = -1;
         }
-    }
+    } 
     release_mutexTable();         //AGGIUNTO IF: non cambia nulla 
 
     int deviceIndex = supportSemAsid[asidTerminate-1]; // rilasciamo
@@ -67,43 +67,54 @@ int printPrinter(char* msg, int length, int devNo) {
 }
 
 void writeDevice(state_t *stato, int asid, int type){
-//    termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, type);
     char* vAddrMSG = (char*)stato->reg_a1;
-    
     int str_len = stato->reg_a2;
-    //Controllo che l'indirizzo virtuale del primo char sia entro il logical U-Proc Address Space, non ecceda la lunghezza del  e che la lunghezza della stringa sia accettabile
-    //In teoria nel logical U-Proc Address Space è limitato da sotto da UPROCSTARTADDR e sopra da USERSTACKTOP 
-    if((str_len < 0 || str_len > MAXSTRLENG) || vAddrMSG < (char *) KUSEG || vAddrMSG >= (char *) USERSTACKTOP) {
-       // print("writeDevice: invalid address or length\n");
+
+    if((unsigned int)vAddrMSG < UPROCSTARTADDR || ((unsigned int)vAddrMSG + str_len) > USERSTACKTOP || str_len < 0 || str_len > MAXSTRLENG) {
         TerminateSYS(asid);
-    //    return; 
     }
-    int status;
-    int deviceNo = asid-1;
-    if (type == WRITETERMINAL) {
-        memaddr* indirizzo_comando = (memaddr*)DEV_REG_ADDR(IL_TERMINAL, deviceNo);
-        int deviceIndex = findDevice(indirizzo_comando) - 1;
+
+    int deviceNo = asid - 1;
+    int status = 0;
+
+    if(type == WRITETERMINAL) {
+        termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, deviceNo);
+        memaddr* cmdAddr = (memaddr*)&devReg->transm_command;
+        int deviceIndex = findDevice(cmdAddr);
+
+        if(deviceIndex < 0 || deviceIndex >= 48) {
+            print("DEVICE SBAGLIATO\n");
+            stato->reg_a0 = -1;
+            stato->pc_epc += 4;
+            LDST(stato);
+        }
+
         acquireDevice(asid, deviceIndex);
         status = printTerminal(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
-        if (status == 1) {
-          //  print("writeDevice: error writing to terminal\n");
+
+    } else if(type == WRITEPRINTER) {
+        dtpreg_t* devReg = (dtpreg_t*)DEV_REG_ADDR(IL_PRINTER, deviceNo);
+        memaddr* cmdAddr = (memaddr*)&devReg->command;
+        int deviceIndex = findDevice(cmdAddr);
+
+        if(deviceIndex < 0 || deviceIndex >= 48) {
+            stato->reg_a0 = -1;
+            stato->pc_epc += 4;
+            print("DEVICE SBAGLIATO\n");
+            LDST(stato);
         }
-    } else if (type == WRITEPRINTER){
-        memaddr* indirizzo_comando = (memaddr*)DEV_REG_ADDR(IL_PRINTER, deviceNo);
-        int deviceIndex = findDevice(indirizzo_comando) - 1;
+
         acquireDevice(asid, deviceIndex);
         status = printPrinter(vAddrMSG, str_len, deviceNo);
         releaseDevice(asid, deviceIndex);
-     if (status != 1) {
-            stato->reg_a0 = -status;     
-        }  
     }
-    //Se l'operazione ha avuto successo, in a0 c'è il numero di caratteri trasmessi 
-    stato->reg_a0 = status;
-    stato->pc_epc += 4; // incrementa il program counter
-    LDST(stato); // ripristina lo stato del processo corrente (va messo in teoria anche se non scritto perchè il processo viene sospeso)
+
+    stato->reg_a0 = (status < 0 ? status : str_len);
+    stato->pc_epc += 4;
+    LDST(stato);
 }
+
 
 // riceve da terminale e salva su address
 int inputFromTerminal(char* addr, int term) {
@@ -125,15 +136,24 @@ int inputFromTerminal(char* addr, int term) {
 }
 void readTerminal(state_t* stato, int asid){
     char *vAddr = (char *) stato->reg_a1; 
-    if(vAddr < (char *) KUSEG || vAddr >= (char *) USERSTACKTOP) {
-        TerminateSYS(asid);
-      //  return; 
+    if((memaddr)vAddr <  KUSEG || (memaddr) vAddr >= USERSTACKTOP) {
+        TerminateSYS(asidAcquired);
     }
+
     int devNo = asid-1;
-    int deviceIndex = findDevice((memaddr*)DEV_REG_ADDR(IL_TERMINAL, devNo)) - 1;
+    termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, devNo);
+    memaddr* cmdAddr = &devReg->recv_command;
+    int deviceIndex = findDevice(cmdAddr);
+    if(deviceIndex < 0 || deviceIndex >= 48) {
+        print("DEVICE SBAGLIATO\n");
+            stato->reg_a0 = -1;
+            stato->pc_epc += 4;
+            LDST(stato);
+        }
     acquireDevice(asid, deviceIndex);
     int status = inputFromTerminal(vAddr, devNo);
     releaseDevice(asid, deviceIndex);
+
     stato->reg_a0 = status;
     stato->pc_epc += 4; 
     LDST(stato);
@@ -147,6 +167,14 @@ void generalExceptionHandler(){
 
     //Decodifica l'eccezione: se NON è SYSCALL -> Program Trap 
     unsigned int exccode = (state->cause & GETEXECCODE);  // mask/shift definiti in const.h
+
+    klog_print("generalExceptionHandler: exccode=");
+    klog_print_dec(exccode);
+    klog_print(", reg_a0=");
+    klog_print_dec(state->reg_a0);
+    klog_print(", asid=");
+    klog_print_dec(sup->sup_asid);
+    klog_print("\n");
     if (exccode != SYSEXCEPTION) {
         supportTrapHandler(sup->sup_asid);   // Program Trap handler 
         return;                    // non proseguire nel dispatch SYSCALL       //AGGIUNTO
@@ -156,8 +184,7 @@ void generalExceptionHandler(){
     int asid = sup->sup_asid;
     switch (state->reg_a0){
         case TERMINATE:   // SYS2
-//           klog_print(" TERMINATE "); 
-//            klog_print_dec(asid);
+//          
             TerminateSYS(asid);
             break;
 

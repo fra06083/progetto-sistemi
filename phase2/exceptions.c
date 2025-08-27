@@ -177,7 +177,7 @@ void DoIO(state_t *stato, unsigned int p_id){
   }
 
   pcb_t* pcb_attuale = current_process[p_id];
-  int devIndex = findDevice(indirizzo_comando) - 1;  // troviamo il dispositivo
+  int devIndex = findDevice(indirizzo_comando);  // troviamo il dispositivo
   if (devIndex < 0) {
     stato->reg_a0 = -1;  // dispositivo non valido, -1 in reg a0
     stato->pc_epc += 4;  // antiloop

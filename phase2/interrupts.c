@@ -46,54 +46,68 @@ void interruptHandler(int intCode, state_t *stato) {
         handleIntervalTimerInterrupt();
         break;
       case 3 ... 7:
-        handleDeviceInterrupt(intlineNo, getDevNo(intlineNo));
+        handleDeviceInterrupt(intlineNo, stato);
         break;
       default:
         break; // Nessuna gestione prevista
     }
 }
+void handleDeviceInterrupt(int intLine, state_t *stato){
+    ACQUIRE_LOCK(&global_lock);  // Acquisizione lock globale
+    memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (getDevNo(intLine) * 0x10);
+    unsigned int status = 0;
+    pcb_t *unblocked = NULL;
 
-
-// Gestione interrupt device I/O (inclusi terminali) — Sezione 7.1
-void handleDeviceInterrupt(int intLine, int devNo) {
-    ACQUIRE_LOCK(&global_lock);
-    int cpuid = getPRID();
-    unsigned int status;
-    //7.1.1 Calculate the address for this device’s device register [Section 12]
-    memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (devNo * 0x10);
     // Gestione per i terminali 
-    if (intLine == 7) { // se è 7 abbiamo la gestione di I/O per i terminali
-        termreg_t *term_reg = (termreg_t *)devAddr;
-        unsigned int status_tr = term_reg->transm_status & 0xFF;
-        if (status_tr == OKCHARTRANS) { // Se il registro di trasmissione ha un carattere pronto 
-          status = term_reg->transm_status;
-          term_reg->transm_command = ACK;
-          devAddr += 0x8; // Abbiamo visto il calcolo dall'ultima tabella.
-          // 0x8 è il passo per passare dal registro di trasmissione a quello di ricezione
-        } else {  
-          status = term_reg->recv_status;
-          term_reg->recv_command = ACK;
+    if (intLine == 7) { 
+        termreg_t *termReg = (termreg_t *)devAddr;
+        unsigned int trans_stat = termReg->transm_status & 0xFF;
+        unsigned int recv_stat = termReg->recv_status & 0xFF;
+        int *semIO = NULL;
+
+        // Se il terminale ha completato una trasmissione 
+        if (trans_stat == 5) {  
+            status = termReg->transm_status;
+            termReg->transm_command = ACK;  // Acknowledge
+            semIO = &sem[findDevice((memaddr *)&termReg->transm_command)];
         }
-      } else {
+        // Se il terminale ha completato una ricezione
+        else if (recv_stat == CHARRECV) {  
+            status = termReg->recv_status;
+            termReg->recv_command = ACK;  // Acknowledge
+            semIO = &sem[findDevice((memaddr *)&termReg->recv_command)];
+        }
+
+        // Gestione semaforo associato al dispositivo terminale 
+        if (semIO != NULL) {
+            (*semIO)++;
+            unblocked = removeBlocked(semIO);
+        }
+
+    } else {  
         // Gestione generica per dispositivi non terminali
         dtpreg_t *devReg = (dtpreg_t *)devAddr;
-        status = devReg->status;  // Salvataggio dello stato del dispositivo
-        devReg->command = ACK;  // Acknowledge scrivendo ACK nel registro command
-      }
-    
-    // Gestione Semaforo - V operation su semaforo associato al device — Sezione 7.1.4
-    int device = findDevice((memaddr *)devAddr) - 1; // trova il dispositivo
-    int *semaforoV = &sem[device];  // get the semaphore of the device
-    (*semaforoV)++;
-    pcb_t *bloccato = removeBlocked(semaforoV); // rimuove il processo bloccato dal semaforo
-    if (bloccato != NULL) {
-        bloccato->p_s.reg_a0 = status;
-        insertProcQ(&pcbReady, bloccato);
+        status = devReg->status;  
+        devReg->command = ACK;  
+
+        int deviceID = findDevice((memaddr *)devAddr);
+        int *semIO = &sem[deviceID];
+
+        (*semIO)++;
+        unblocked = removeBlocked(semIO);
     }
-    // Ripristino dell’esecuzione: processo corrente o invocazione dello scheduler — 7.1.7
-    if(current_process[cpuid] != NULL) {
+
+    // Ripristino del processo sbloccato
+    if (unblocked != NULL) {
+        unblocked->p_s.reg_a0 = status;
+        insertProcQ(&pcbReady, unblocked);
+    }
+
+    // Ripristino esecuzione processo corrente o chiamata scheduler — 7.1.7
+    int cpuid = getPRID();
+    if (current_process[cpuid] != NULL) {
         RELEASE_LOCK(&global_lock);
-        LDST(&current_process[cpuid]->p_s);
+        LDST(stato);
     } else {
         RELEASE_LOCK(&global_lock);
         scheduler();

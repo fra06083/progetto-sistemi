@@ -20,6 +20,11 @@ int supportSemAsid[UPROCMAX];
 
 void acquireDevice(int asid, int devIndex) {
     int* sem = &supportSem[devIndex];
+    klog_print("acquireDevice: asid=");
+    klog_print_dec(asid);
+    klog_print(", devIndex=");
+    klog_print_dec(devIndex);
+    klog_print("\n");
     SYSCALL(PASSEREN, (int)sem, 0, 0);
     supportSemAsid[asid-1] = devIndex;           
 }

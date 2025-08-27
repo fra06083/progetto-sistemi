@@ -11,7 +11,6 @@ void print(int device, char *str) {
 	int leng, status;
 
 	for (leng = 0; str[leng] != '\0'; leng++);
-	
 	status = SYSCALL (device, (int)str, leng, 0);
 	
 	if (status < 0) {

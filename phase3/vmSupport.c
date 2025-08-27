@@ -46,7 +46,7 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
     //Punto 9 (c)
     //Block number = VPN k (corrispondono)
     //Scrivere nel DATA0 field (del flash device) l'indirizzo fisico di partenza di un certo frame
-    int semIndex = findDevice((memaddr*) getFlashAddr(asid)) - 1;
+    int semIndex = findDevice((memaddr*) getFlashAddr(asid));
     acquireDevice(asid, semIndex);
     dtpreg_t *devreg = (dtpreg_t *) getFlashAddr(asid); // mi dà l'indirizzo del registro del flash
     int commandAddr = (int)&devreg->command;
@@ -58,7 +58,6 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
     if ((status & 0XFF) == error) { 
         release_mutexTable();
         supportTrapHandler(asid);
-        return;                     //AGGIUNTO
     }
 }
 void uTLB_ExceptionHandler() {  
@@ -86,8 +85,7 @@ void uTLB_ExceptionHandler() {
             release_mutexTable();
             LDST(state);
         }
-    }else release_mutexTable();
-    acquire_mutexTable(ASID);
+    } 
     // ... continua punto 7         
     // Seleziona un frame dalla Swap Pool usando l'algoritmo di page replacement 
     int fr_index = selectSwapFrame();     
