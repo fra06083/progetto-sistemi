@@ -54,6 +54,7 @@ void interruptHandler(int intCode, state_t *stato) {
 }
 void handleDeviceInterrupt(int intLine, state_t *stato){
     ACQUIRE_LOCK(&global_lock);  // Acquisizione lock globale
+    // Non usiamo quello di sistema perché sappiamo già intLineNo, non eccezione
     memaddr devAddr = START_DEVREG + ((intLine - 3) * 0x80) + (getDevNo(intLine) * 0x10);
     unsigned int status = 0;
     pcb_t *unblocked = NULL;
@@ -103,7 +104,7 @@ void handleDeviceInterrupt(int intLine, state_t *stato){
         insertProcQ(&pcbReady, unblocked);
     }
 
-    // Ripristino esecuzione processo corrente o chiamata scheduler — 7.1.7
+    // Ripristino esecuzione processo corrente o chiamata scheduler; terminiamo interrupt.
     int cpuid = getPRID();
     if (current_process[cpuid] != NULL) {
         RELEASE_LOCK(&global_lock);
