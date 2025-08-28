@@ -24,8 +24,6 @@ int selectSwapFrame(){
     // "increment this variable mod the size of the Swap Pool"
     
 }
-
-
 void check_updateTLB(pteEntry_t *pte){
     //Metto l'entry della page Table del processo corrente, guardo se è nella TLB
     setENTRYHI(pte->pte_entryHI);       //Comando che scrive in un Registro: EntryHiRegister
@@ -37,8 +35,9 @@ void check_updateTLB(pteEntry_t *pte){
         //Mutua esclusione non serve perchè ogni processore ha la sua TLB
         //Istruzioni per scrivere nella TLB
         setENTRYLO(pte->pte_entryLO); // Imposta l'entry LO Register, entryHi già settato sopra
-        TLBWR(); // Scrive l'entry nella TLB
+        TLBWI(); // Scrive l'entry nella TLB
     }//Se non va nell'if la TLB contiene già la entry
+    
 }
 
 
@@ -54,8 +53,8 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
     devreg->data0 = frameAddr;
     int status = SYSCALL(DOIO, commandAddr, commandValue, 0);
     releaseDevice(asid, semIndex);
-    int error = read ? 4 : 5; // 4: FLASHREAD_ERROR, 5: FLASHWRITE_ERROR
-    if ((status & 0XFF) == error) { 
+    int error = read ? 4 : 5; // 4: FLASHREAD ERROR, 5: FLASHWRITE ERROR
+    if ((status & 0xFF) == error) { 
         release_mutexTable();
         supportTrapHandler(asid);
     }
@@ -98,17 +97,6 @@ void uTLB_ExceptionHandler() {
         //punto 9 (b): Update TLB if needed
         check_updateTLB(entry);
         writeFlash(asid_proc_x, SWAP_POOL_START + (fr_index * PAGESIZE), k); //Scrivo il frame nel flash device
-    /*    int trovato = FALSE;             
-        for (int i = 0; i < POOLSIZE && !trovato; i++){             //Da telegram: swap_mutex così l'esecuzione è atomica 9 (a,b), manca disabilitazione interrupt in questa fase 
-            unsigned int sw_asid = swap_pool[i].sw_asid;
-            if (sw_asid == ASID && swap_pool[i].sw_pageNo == k)
-                trovato = TRUE;
-            } 
-            if(trovato){
-                updateTLB(swap_pool[fr_index].sw_pte);
-                writeFlash(asid_proc_x, FRAMEPOOLSTART + (fr_index * PAGESIZE), k); //Scrivo il frame nel flash device
-            }
-        */
     } 
     readFlash(ASID, SWAP_POOL_START + (fr_index * PAGESIZE), p);
     //Punto 10
@@ -122,8 +110,6 @@ void uTLB_ExceptionHandler() {
     unsigned int pfn = (SWAP_POOL_START + (fr_index * PAGESIZE)) >> ENTRYLO_PFN_BIT;
     swap_pool[fr_index].sw_pte->pte_entryLO |= (pfn << ENTRYLO_PFN_BIT) & ENTRYLO_PFN_MASK;
 
-    //swap_pool[fr_index].sw_pte->pte_entryLO &= ~ENTRYLO_PFN_MASK; // imposta pfn 0 // AND tra quello esistente e negato           //commentato
-    //swap_pool[fr_index].sw_pte->pte_entryLO |= (SWAP_POOL_START + (fr_index * PAGESIZE)); // imposta la pfn all'indirizzo del frame    //commentato
     //Devo aggiornare il PFN field nella pte_entry_LO della pagina p del processo ASID
     //Aggiorno la TLB
     check_updateTLB(swap_pool[fr_index].sw_pte);

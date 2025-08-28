@@ -10,9 +10,9 @@ Rovelli’s thesis for more details.
 
 void uTLB_RefillHandler() {
     int prid = getPRID();
+    ACQUIRE_LOCK(&global_lock);
     state_t *state = GET_EXCEPTION_STATE_PTR(prid);
     unsigned int p = getPageIndex(state->entry_hi); //  trova il numero della pagina
-    ACQUIRE_LOCK(&global_lock);
     pcb_t *pcb = current_process[prid];
     if (pcb == NULL || pcb->p_supportStruct == NULL) { // non dovrebbe succedere in fase 3
         RELEASE_LOCK(&global_lock);

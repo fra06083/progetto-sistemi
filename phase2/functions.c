@@ -57,13 +57,14 @@ pcb_t * findProcess(int pid) {
  */
 void *memcpy(void *dest, const void *src, unsigned int len)
 {
-  char *d = dest;
-  const char *s = src;
-  while (len--){
-    *d++ = *s++;
-  }
-  return dest;
+    char *d = dest;         // Puntatore alla destinazione, byte per byte
+    const char *s = src;    // Puntatore alla sorgente, byte per byte
+    while (len--) {         // Finché ci sono byte da copiare
+        *d++ = *s++;        // Copia il byte corrente e avanza entrambi i puntatori
+    }
+    return dest;            // Ritorna il puntatore originale alla destinazione
 }
+
 /* 
 
 Field #    | Address          | Field Name
@@ -79,9 +80,26 @@ Il calcolo dell’indice considera:
 - 16 terminali con 2 sub-dispositivi (ogni 0x8 byte)
 
 */
-
-
+/*
+ *    'register' è un hint per il compilatore: indica che la variabile 
+ *    può essere memorizzata in un registro della CPU invece che in RAM!
+ *    può essere utile per garantire l’uso dei registri.
+ *    Viene usato un puntatore di tipo unsigned char* per garantire che
+ *    si scrivano byte singoli indipendentemente dal tipo di memoria originale.
+ *    register is a hint to the compiler, advising it to store 
+ *    that variable in a processor register instead of memory 
+ *    (for example, instead of the stack).
+ */
 // Funzione che trova il dispositivo a partire dall'indirizzo di comando
+void *memset(void *dest, register int val, register unsigned int len) {
+    register unsigned char *ptr = (unsigned char*)dest; // puntatore che scorre i byte
+
+    while (len-- > 0) {
+        *ptr++ = val; // scrive il byte e avanza il puntatore
+    }
+
+    return dest; // ritorna il puntatore originale
+}
 int findDevice(memaddr * indirizzo_comando) {
   unsigned int getDevices = (unsigned int) indirizzo_comando - START_DEVREG; // togliamo dall'indirizzo il base address
   /* Problema: come troviamo l'indice del semaforo da bloccare?
@@ -91,10 +109,16 @@ int findDevice(memaddr * indirizzo_comando) {
    noi abbiamo pensato che riserviamo i primi 32 indici per i dispositivi generici
    e i successivi 16 per i terminali poi ritorniamo l'indice del dispositivo
   */
+  int indice = -1;
   if (getDevices >= (DEVICES * 0x10)) { // allora è un terminale
-    return (DEVICES + ((getDevices - (DEVICES * 0x10)) / 0x8));
-  } 
-    return (getDevices / 0x10); // altrimenti è un dispositivo generico
+    indice = (DEVICES + ((getDevices - (DEVICES * 0x10)) / 0x8));
+  } else {
+    indice = (getDevices / 0x10);
+  }
+  if (indice == -1 || indice >= NSUPPSEM) {
+    return -1; // errore, dispositivo non valido
+  }
+  return indice;
 }
 // calcolo del tempo, prende il tempo corrente e lo sottrae al tempo di inizio
 cpu_t getTime(int p_id) {

@@ -10,8 +10,8 @@ extern void klog_print_dec(unsigned int num);
 //Dichiarazioni (globali) delle variabili di fase 3 (qua)
 //N.B. Nella documentazione in alcuni casi possiamo scegliere di dichiararle localmente nei file! 
 int masterSem; // alla fine dice di gestirlo così
-state_t procStates[UPROCMAX] = {0};
-support_t sup_struct[UPROCMAX] = {0}; //8 U-proc, per ogni  struttura di supporto 
+state_t procStates[UPROCMAX];
+support_t sup_struct[UPROCMAX]; //8 U-proc, per ogni  struttura di supporto 
 swap_t swap_pool[POOLSIZE]; // nel documento dice uprocmax * 2
 int swap_mutex; // semaforo mutua esclusione pool
 int asidAcquired; // asid che prende la mutua esclusione
@@ -20,11 +20,6 @@ int supportSemAsid[UPROCMAX];
 
 void acquireDevice(int asid, int devIndex) {
     int* sem = &supportSem[devIndex];
-    klog_print("acquireDevice: asid=");
-    klog_print_dec(asid);
-    klog_print(", devIndex=");
-    klog_print_dec(devIndex);
-    klog_print("\n");
     SYSCALL(PASSEREN, (int)sem, 0, 0);
     supportSemAsid[asid-1] = devIndex;           
 }
@@ -62,12 +57,12 @@ void p3test(){
         swap_pool[i].sw_pte    = NULL;
     }
     swap_mutex = 1;
-    masterSem = 0;
-    asidAcquired = -1;
 
     // FIX: i semafori di supporto si inizializzano una sola volta fuori dal ciclo
     for (int i = 0; i < NSUPPSEM; i++) supportSem[i] = 1; 
     for (int i = 0; i < UPROCMAX; i++) supportSemAsid[i] = -1; // -1 significa che non ha acquisito nessun device
+    masterSem = 0;
+    asidAcquired = -1;
     // inizializzazione processi:
     for (int i = 0; i < UPROCMAX; i++) {
         int ASID = i+1;
@@ -80,23 +75,13 @@ void p3test(){
 
         // struct di supporto 0....7
         sup_struct[i].sup_asid = ASID;
-
-        /* CONTEXT TLB EXC. HANDLER */
-        context_t context_TLB;
-        context_TLB.pc = (memaddr)
-        uTLB_ExceptionHandler;
-        context_TLB.status = MSTATUS_MPP_M;
-        context_TLB.stackPtr = (memaddr)&(sup_struct[i].sup_stackTLB[499]); // gestiamo come stack dal fondo
-
-        /* CONTEXT GENERAL EXC. HANDLER*/
-        context_t context_GE;
-        context_GE.pc = (memaddr) generalExceptionHandler;
-        context_GE.status = MSTATUS_MPP_M;
-        context_GE.stackPtr = (memaddr)&(sup_struct[i].sup_stackGen[499]); // da sopra, lo gestiamo come stack
-
-        // assegniamo i context alle strutture di supporto
-        sup_struct[i].sup_exceptContext[PGFAULTEXCEPT] = context_TLB; // TLB exception
-        sup_struct[i].sup_exceptContext[GENERALEXCEPT] = context_GE; // general exception
+        sup_struct[i].sup_exceptContext[PGFAULTEXCEPT].pc = (memaddr)uTLB_ExceptionHandler;
+        sup_struct[i].sup_exceptContext[PGFAULTEXCEPT].status = MSTATUS_MPP_M;
+        sup_struct[i].sup_exceptContext[PGFAULTEXCEPT].stackPtr = (memaddr)&(sup_struct[i].sup_stackTLB[499]); // gestiamo come stack dal fondo
+       
+        sup_struct[i].sup_exceptContext[GENERALEXCEPT].pc = (memaddr)generalExceptionHandler;
+        sup_struct[i].sup_exceptContext[GENERALEXCEPT].status = MSTATUS_MPP_M;
+        sup_struct[i].sup_exceptContext[GENERALEXCEPT].stackPtr = (memaddr)&(sup_struct[i].sup_stackGen[499]);
 
         //Per il momento setta qui tutte le entry della proc page table per ogni U-proc (supp_struct), 
         //segui documentazione VPN field, ASID field, ecc... 
@@ -120,6 +105,6 @@ void p3test(){
 
         SYSCALL(PASSEREN, (int)&masterSem, 0, 0);
     }
-    print("Dovrebbe essere finito qui, terminiamo il processo principale\n");
+    klog_print("Terminiamo il processo principale ora.\n");
     SYSCALL(TERMPROCESS, 0, 0, 0);
 }
