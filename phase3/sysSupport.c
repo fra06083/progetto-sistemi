@@ -1,17 +1,14 @@
 #include "./headers/sysSupport.h"
+
 /* TODO: 
 - General exception handler [Section 6].
 - SYSCALL exception handler [Section 7].
 - Program Trap exception handler [Section 8].
 */
+
 // Punto 6/7
-extern void klog_print(const char *str);
-extern void klog_print_dec(unsigned int num);
 extern int masterSem;
 
-extern void klog_print(const char *str);
-extern void klog_print_dec(unsigned int num);
-extern int masterSem;
 // TerminateSYS: termina il processo con ASID asidTerminate
 void TerminateSYS(int asidTerminate) {
     // Se non ho già acquisito il mutex, lo prendo
@@ -40,7 +37,7 @@ void TerminateSYS(int asidTerminate) {
     SYSCALL(TERMINATE, 0, 0, 0);
 }
 
-// Funzioni per la scrittura su dispositivi
+// FUNZIONI PER LA SCRITTURA SU DISPOSITIVI
 int printTerminal(char* msg, int lenMsg, int term) {
     termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
     unsigned int status;
@@ -56,6 +53,7 @@ int printTerminal(char* msg, int lenMsg, int term) {
     }
     return charSent;
 }
+
 
 int printPrinter(char* msg, int length, int devNo) {
     dtpreg_t* devReg = (dtpreg_t*)DEV_REG_ADDR(IL_PRINTER, devNo);
