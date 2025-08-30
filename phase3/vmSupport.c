@@ -1,4 +1,5 @@
 #include "./headers/vmSupport.h"
+
 #define getFlashAddr(asid) (DEV_REG_ADDR(IL_FLASH, asid-1))
 #define writeFlash(asid, flashAddr, block)  FlashRW(asid, flashAddr, block, 0)
 #define readFlash(asid, flashAddr, block)   FlashRW(asid, flashAddr, block, 1)
@@ -10,27 +11,28 @@
 - the Swap Pool table is local to this module
 */
 
-extern void klog_print(const char *str);
-extern void klog_print_dec(unsigned int num);
 
+//POLITICA PER RIMPIAZZAMENTO FRAME SWAP POOL
 int selectSwapFrame(){     
     static int next_frame_index = 0;// Page replacement FIFO (5.4) 
     for (int i = 0; i < POOLSIZE; i++) {
         if (swap_pool[i].sw_asid == -1) {
-                return i;
+                return i; // frame libero
         }
     }
-    return (next_frame_index++ % POOLSIZE);
-    // "increment this variable mod the size of the Swap Pool"
+    return (next_frame_index++ % POOLSIZE); // "increment this variable mod the size of the Swap Pool"
     
 }
+
 void check_updateTLB(pteEntry_t *pte){
-    //Metto l'entry della page Table del processo corrente, guardo se è nella TLB
-    setENTRYHI(pte->pte_entryHI);       //Comando che scrive in un Registro: EntryHiRegister
-    //TLBP cerca solo l'entryHi contenuta nel EntryHiRegister, non serve setEntryLO solo quando scrivo nella TLB (comando TLBWR)
-    TLBP();         //comando per fare l'operazione di search nella TLB del processore, cerca se nella TLB c'è un match col valore di EntryHi register (corrente direi, dovrebbe essere come TLBWR sul processore corrente):
-    unsigned int index = getINDEX();        //Ottengo il valore dell' Index Register
-    if(!(index & PRESENTFLAG)){           //Leggo il Probe bit, 1 ahia , 0 tutt'apposto, però è da negare sennò non entra 
+    setENTRYHI(pte->pte_entryHI);       //Metto l'entry della PT del processo corrente, guardo se è nella TLB
+                                        //Comando che scrive in un Registro: EntryHiRegister
+    TLBP();                             //TLBP cerca solo l'entryHi contenuta nel EntryHiRegister, non serve setEntryLO solo quando scrivo nella TLB (comando TLBWR)
+                                         //comando per fare l'operazione di search nella TLB del processore, cerca se nella TLB c'è un match col valore di EntryHi register (corrente direi, dovrebbe essere come TLBWR sul processore corrente):
+    unsigned int index = getINDEX();       //Ottengo il valore dell' Index Register
+    //se probe bit è 1 non c'è match
+    //se probe bit è 0 c'è match
+    if(!(index & PRESENTFLAG)){           // negato sennò non entra
         //Caso no match is found
         //Mutua esclusione non serve perchè ogni processore ha la sua TLB
         //Istruzioni per scrivere nella TLB
@@ -59,26 +61,32 @@ void FlashRW(int asid, memaddr frameAddr, int block, int read){
         supportTrapHandler(asid);
     }
 }
+
+
 void uTLB_ExceptionHandler() {  
-    support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       //NSYS8 (pulire commenti, uso come placeholder)
-    state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)       
+    support_t *sup_ptr = (support_t *)SYSCALL(GETSUPPORTPTR, 0, 0, 0);       
+    state_t *state = &(sup_ptr->sup_exceptState[PGFAULTEXCEPT]);             //Cause of the TLB Exception (4.2)  
+
     if (state->cause == EXC_MOD) { // punto 4.2
       supportTrapHandler(sup_ptr->sup_asid);
       return; // Non proseguire nel dispatch SYSCALL 
     }
-    unsigned int p = getPageIndex(state->entry_hi);                          // punto 5 (4.2 Pager)
-    unsigned int ASID = sup_ptr->sup_asid;                                   // ASID: asid current process
-    acquire_mutexTable(ASID);                                                // punto 4 (4.2 Pager)
-    int trovato = FALSE;
+
+    unsigned int p = getPageIndex(state->entry_hi);          // punto 5 (4.2 Pager)
+    unsigned int ASID = sup_ptr->sup_asid;                   // ASID: asid current process
+    acquire_mutexTable(ASID);                                // punto 4 (4.2 Pager)
+                                                
+    int found = FALSE;
     int i;    
-    for (i = 0; i < POOLSIZE && !trovato; i++){
+    for (i = 0; i < POOLSIZE && !found; i++){
         unsigned int sw_asid = swap_pool[i].sw_asid;
         if (sw_asid == ASID && swap_pool[i].sw_pageNo == p){
-            trovato = TRUE;
+            found = TRUE;
             break;
         }   
     }
-    if (trovato) {  
+
+    if (found) {  
         check_updateTLB(swap_pool[i].sw_pte);                           
         if (sup_ptr->sup_privatePgTbl[p].pte_entryLO & ENTRYLO_VALID) { // controlliamo se è valido, rilasciamo e ricarichiamo
             release_mutexTable();
@@ -87,18 +95,20 @@ void uTLB_ExceptionHandler() {
     } 
     // ... continua punto 7         
     // Seleziona un frame dalla Swap Pool usando l'algoritmo di page replacement 
-    int fr_index = selectSwapFrame();     
-    if(swap_pool[fr_index].sw_asid != -1 ){                         //asid -1 -> frame libero 
+    int fr_index = selectSwapFrame();    
+
+    if(swap_pool[fr_index].sw_asid != -1 ){                        //asid -1 -> frame libero 
     //frame occupato, lo libero (punto 9)
         int k = swap_pool[fr_index].sw_pageNo;                     //Virtual Page Number k del frame occupato 
         int asid_proc_x = swap_pool[fr_index].sw_asid;             //k e processo x (asid) ~ stessi nomi documentazione 
         pteEntry_t *entry = swap_pool[fr_index].sw_pte;
-        entry->pte_entryLO &= ~VALIDON; // spegne il vbit impostandolo ad invalid  
+        entry->pte_entryLO &= ~VALIDON;                             // spegne il vbit impostandolo ad invalid  
         //punto 9 (b): Update TLB if needed
         check_updateTLB(entry);
         writeFlash(asid_proc_x, SWAP_POOL_START + (fr_index * PAGESIZE), k); //Scrivo il frame nel flash device
     } 
     readFlash(ASID, SWAP_POOL_START + (fr_index * PAGESIZE), p);
+    
     //Punto 10
     swap_pool[fr_index].sw_asid = ASID;                                  //Aggiorno la swap pool per dire che il frame i è occupato dal processo ASID
     swap_pool[fr_index].sw_pageNo = p;                                   //Aggiorno la swap pool per dire che il frame i contiene la pagina p
@@ -113,6 +123,7 @@ void uTLB_ExceptionHandler() {
     //Devo aggiornare il PFN field nella pte_entry_LO della pagina p del processo ASID
     //Aggiorno la TLB
     check_updateTLB(swap_pool[fr_index].sw_pte);
+
     //Punto 11
     release_mutexTable(); // Rilascio il mutex della swap pool
     LDST(state); // Ripristino lo stato del processo che ha causato il page fault     
