@@ -80,20 +80,9 @@ Il calcolo dell’indice considera:
 - 16 terminali con 2 sub-dispositivi (ogni 0x8 byte)
 
 */
-/*
- *    Viene usato un puntatore di tipo unsigned char* per garantire che
- *    si scrivano byte singoli indipendentemente dal tipo di memoria originale.
- */
+
 // Funzione che trova il dispositivo a partire dall'indirizzo di comando
-void *memset(void *dest, register int val, unsigned int len) {
-    unsigned char *ptr = (unsigned char*)dest; // puntatore che scorre i byte
 
-    while (len-- > 0) {
-        *ptr++ = val; // scrive il byte e avanza il puntatore
-    }
-
-    return dest; // ritorna il puntatore originale
-}
 int findDevice(memaddr * indirizzo_comando) {
   unsigned int getDevices = (unsigned int) indirizzo_comando - START_DEVREG; // togliamo dall'indirizzo il base address
   /* Problema: come troviamo l'indice del semaforo da bloccare?
@@ -113,6 +102,20 @@ int findDevice(memaddr * indirizzo_comando) {
     return -1; // errore, dispositivo non valido
   }
   return indice;
+}
+/*
+ * 
+ *    memset aggiunto per copiare indirizzi; viene usato un puntatore di tipo unsigned char* per garantire che
+ *    si scrivano byte singoli indipendentemente dal tipo di memoria originale.
+ */
+void *memset(void *dest, register int val, unsigned int len) {
+    unsigned char *ptr = (unsigned char*)dest; // puntatore che scorre i byte
+
+    while (len-- > 0) {
+        *ptr++ = val; // scrive il byte e avanza il puntatore
+    }
+
+    return dest; // ritorna il puntatore originale
 }
 // calcolo del tempo, prende il tempo corrente e lo sottrae al tempo di inizio
 cpu_t getTime(int p_id) {
