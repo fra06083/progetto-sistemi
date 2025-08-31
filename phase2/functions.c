@@ -81,18 +81,12 @@ Il calcolo dell’indice considera:
 
 */
 /*
- *    'register' è un hint per il compilatore: indica che la variabile 
- *    può essere memorizzata in un registro della CPU invece che in RAM!
- *    può essere utile per garantire l’uso dei registri.
  *    Viene usato un puntatore di tipo unsigned char* per garantire che
  *    si scrivano byte singoli indipendentemente dal tipo di memoria originale.
- *    register is a hint to the compiler, advising it to store 
- *    that variable in a processor register instead of memory 
- *    (for example, instead of the stack).
  */
 // Funzione che trova il dispositivo a partire dall'indirizzo di comando
-void *memset(void *dest, register int val, register unsigned int len) {
-    register unsigned char *ptr = (unsigned char*)dest; // puntatore che scorre i byte
+void *memset(void *dest, register int val, unsigned int len) {
+    unsigned char *ptr = (unsigned char*)dest; // puntatore che scorre i byte
 
     while (len-- > 0) {
         *ptr++ = val; // scrive il byte e avanza il puntatore

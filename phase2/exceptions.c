@@ -68,8 +68,8 @@ void createProcess(state_t *c_state){
   if (new_process == NULL) {
     c_state->reg_a0 = -1; // restituisco -1 nel registro a0 se non posso creare un processo
     c_state->pc_epc += 4;
-    LDST(c_state);
     RELEASE_LOCK(&global_lock);
+    LDST(c_state);
     return; // non possiamo creare un processo, quindi esce fuori dalla funzione
   }
   state_t *p_s = (state_t *)c_state->reg_a1;
