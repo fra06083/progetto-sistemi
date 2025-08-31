@@ -113,14 +113,12 @@ void uTLB_ExceptionHandler() {
     swap_pool[fr_index].sw_asid = ASID;                                  //Aggiorno la swap pool per dire che il frame i è occupato dal processo ASID
     swap_pool[fr_index].sw_pageNo = p;                                   //Aggiorno la swap pool per dire che il frame i contiene la pagina p
     swap_pool[fr_index].sw_pte = &(sup_ptr->sup_privatePgTbl[p]);
-    swap_pool[fr_index].sw_pte->pte_entryLO |= VALIDON; 
-    // Imposta il bit VALID nella PTE per indicare che la pagina è valida
-
+    swap_pool[fr_index].sw_pte->pte_entryLO |= VALIDON; // valida page p OR BIT
+ 
+     
     swap_pool[fr_index].sw_pte->pte_entryLO &= ~ENTRYLO_PFN_MASK; 
-    // Resetta (azzera) il campo PFN della PTE, pronto per inserire il nuovo frame fisico
-
-    swap_pool[fr_index].sw_pte->pte_entryLO |= (SWAP_POOL_START + (fr_index * PAGESIZE)); 
-    // Scrive l’indirizzo fisico del frame nella PTE (PFN + eventuali bit di controllo)
+    unsigned int pfn = (SWAP_POOL_START + (fr_index * PAGESIZE)) >> ENTRYLO_PFN_BIT;
+    swap_pool[fr_index].sw_pte->pte_entryLO |= (pfn << ENTRYLO_PFN_BIT) & ENTRYLO_PFN_MASK;
 
     //Devo aggiornare il PFN field nella pte_entry_LO della pagina p del processo ASID
     //Aggiorno la TLB
