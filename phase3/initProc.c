@@ -41,8 +41,8 @@ void acquire_mutexTable(int asid){
     asidAcquired = asid;
 }
 void release_mutexTable(){
-    SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0);
     asidAcquired = -1;
+    SYSCALL(VERHOGEN, (int)&swap_mutex, 0, 0);
 }
 
 
@@ -119,7 +119,6 @@ void p3test(){
     //Attesa terminazione processi
     for (int i = 0; i < UPROCMAX; i++) { // P così aspetta che termini
         //print("Waiting for process to terminate...\n");
-
         SYSCALL(PASSEREN, (int)&masterSem, 0, 0);
     }
 
