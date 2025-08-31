@@ -10,19 +10,17 @@ Rovelli’s thesis for more details.
 
 void uTLB_RefillHandler() {
     int prid = getPRID();
-    ACQUIRE_LOCK(&global_lock);
     state_t *state = GET_EXCEPTION_STATE_PTR(prid);
     unsigned int p = getPageIndex(state->entry_hi); //  trova il numero della pagina
     pcb_t *pcb = current_process[prid];
     if (pcb == NULL || pcb->p_supportStruct == NULL) { // non dovrebbe succedere in fase 3
-        RELEASE_LOCK(&global_lock);
+       
         PANIC();
     }
     pteEntry_t *entry = &(pcb->p_supportStruct->sup_privatePgTbl[p]); // Ottiene l'entry della page table
     setENTRYHI(entry->pte_entryHI); // Imposta l'entry HI
     setENTRYLO(entry->pte_entryLO); // Imposta l'entry LO
     TLBWR(); // Scrive l'entry nella TLB
-    RELEASE_LOCK(&global_lock);
     LDST(state);
 }  
 void passupordie(int cause, state_t* stato){

@@ -67,7 +67,7 @@ void handleDeviceInterrupt(int intLine, state_t *stato){
         int *semIO = NULL;
 
         // Se il terminale ha completato una trasmissione 
-        if (trans_stat == 5) {  
+        if (trans_stat == OKCHARTRANS) {  
             status = termReg->transm_status;
             termReg->transm_command = ACK;  // Acknowledge
             semIO = &sem[findDevice((memaddr *)&termReg->transm_command)];
@@ -77,7 +77,10 @@ void handleDeviceInterrupt(int intLine, state_t *stato){
             status = termReg->recv_status;
             termReg->recv_command = ACK;  // Acknowledge
             semIO = &sem[findDevice((memaddr *)&termReg->recv_command)];
-        }
+        } else {
+          termReg->recv_command = ACK;  // Acknowledge comunque per sicurezza
+          termReg->transm_command = ACK;
+        } 
 
         // Gestione semaforo associato al dispositivo terminale 
         if (semIO != NULL) {
