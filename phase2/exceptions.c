@@ -303,7 +303,9 @@ switch (registro){
     GetProcessId(stato, p_id); 
     break;
    default:
-    PANIC(); // Se non è nessuna delle syscall allora PANIC, non dovrebbe arrivare mai qui
+    // PROGRAM TRAP per syscall invalida, fix opcode?
+    state->cause = GENERALEXCEPT;
+    exceptionHandler();
     break;
    }
 }
