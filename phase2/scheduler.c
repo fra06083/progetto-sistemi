@@ -22,8 +22,8 @@ Current Process field of the current CPU.
       // Ready queue vuota, ma ci sono processi in esecuzione, quindi WAIT
       setMIE(MIE_ALL & ~MIE_MTIE_MASK);
       unsigned int status = getSTATUS();
-      status |= MSTATUS_MIE_MASK;
-      *((memaddr * ) TPR) = 1; // // Impostiamo TPR a 1 prima di WAIT
+      status |= MSTATUS_MIE_MASK; 
+      *((memaddr * ) TPR) = 1;  // Impostiamo TPR a 1 prima di WAIT
       RELEASE_LOCK(&global_lock); // Rilascio del lock prima di WAIT
       setSTATUS(status);
       WAIT();    // Entra in Wait State

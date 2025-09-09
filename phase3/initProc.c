@@ -82,8 +82,8 @@ void p3test(){
         // Iniziazione stati
         procStates[i].pc_epc = UPROCSTARTADDR;
         procStates[i].reg_sp = USERSTACKTOP;
-        procStates[i].status = MSTATUS_MPIE_MASK;
-        procStates[i].mie = MIE_ALL;
+        procStates[i].status = MSTATUS_MPIE_MASK; 
+        procStates[i].mie = MIE_ALL; // abilita interrupts
         procStates[i].entry_hi = ASID << ASIDSHIFT; // FIX: shift dell’ASID
 
         // struct di supporto 0....7
@@ -105,7 +105,7 @@ void p3test(){
         //initialization prior to request the CreateProcess service
         for (int j = 0; j < USERPGTBLSIZE; j++) {
             unsigned int vpn;
-            vpn = (j != USERPGTBLSIZE-1) ? KUSEG | (j << VPNSHIFT) : 0xBFFFF000; // FIX: uso j, non i
+            vpn = (j != USERPGTBLSIZE-1) ? (KUSEG | (j << VPNSHIFT)) : 0xBFFFF000; // FIX: uso j, non i
             // se è uguale calcolo il suo indirizzo, sennò valore finale 0xBFFFF000
             unsigned int entryHI = vpn | (ASID << ASIDSHIFT); // FIX: shift dell’ASID
             unsigned int entryLO = DIRTYON; 

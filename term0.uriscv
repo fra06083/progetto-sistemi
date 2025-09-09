@@ -1,8 +1,8 @@
 Strcat Test starts
-Enter a string: ciao
+Enter a string: a
 
-Enter another string: dd
-ciaodd
+Enter another string: b
+ab
 
 
 Strcat concluded

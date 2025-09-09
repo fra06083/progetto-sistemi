@@ -14,7 +14,6 @@ void uTLB_RefillHandler() {
     unsigned int p = getPageIndex(state->entry_hi); //  trova il numero della pagina
     pcb_t *pcb = current_process[prid];
     if (pcb == NULL || pcb->p_supportStruct == NULL) { // non dovrebbe succedere in fase 3
-       
         PANIC();
     }
     pteEntry_t *entry = &(pcb->p_supportStruct->sup_privatePgTbl[p]); // Ottiene l'entry della page table
@@ -37,6 +36,7 @@ void passupordie(int cause, state_t* stato){
     context_t* context = &current->p_supportStruct->sup_exceptContext[cause];
     RELEASE_LOCK(&global_lock);
     LDCXT(context->stackPtr, context->status, context->pc); // qui carica il context
+    // LO MANDA A FASE 3, GENERALEXCEPT O PGFAULTEXCEPT
   }
   scheduler();
 }
@@ -95,14 +95,12 @@ void terminateProcess(state_t *c_state, unsigned int p_id){
     // CERCHIAMO il processo, mettiamo true così lo rimuove di già
   pcb_t *process = findProcess(p_id);
   if (process != NULL){
-    killProcess(process); // non lo abbiamo trovato, il termprocess vuole terminare un processo che non esiste
-    // dovremo far ripartire l'esecuzione del processo ma come??
+    killProcess(process); // terminiamo il processo che abbiamo trovato con findProcess
     RELEASE_LOCK(&global_lock);
     scheduler();
     return;
   }
   RELEASE_LOCK(&global_lock);
-  // dovremo far ripartire l'esecuzione del processo ma come??
   c_state->pc_epc += 4;             // increment the program counter
   LDST(c_state);
   }
@@ -112,7 +110,7 @@ void P(state_t* stato, unsigned int p_id) {
   ACQUIRE_LOCK(&global_lock);
   int *semaforo = (int *) stato->reg_a1;
 
-  if (*semaforo == 0) {
+  if (*semaforo == 0) { // semaforo a 0 blocchiamo il processo
       // Blocca il processo corrente
       pcb_t* pcbBlocked = current_process[p_id];
       insertBlocked(semaforo, pcbBlocked);  // inserisci il processo nella lista dei bloccati
@@ -120,7 +118,7 @@ void P(state_t* stato, unsigned int p_id) {
       RELEASE_LOCK(&global_lock);
       scheduler(); 
       return;  // ritorna e non continuare l'esecuzione del processo corrente
-  } else if (*semaforo == 1) {
+  } else if (*semaforo == 1) { // semaforo a 1, vediamo se c'è un processo in attesa, sennò mettiamo a 0
       pcb_t* processo_sbloccato = removeBlocked(semaforo);  // sblocca il processo in attesa
       if (processo_sbloccato != NULL) {
         insertProcQ(&pcbReady, processo_sbloccato);  // metti il processo nella coda dei ready
@@ -187,7 +185,7 @@ void DoIO(state_t *stato, unsigned int p_id){
   int* semPTR = &sem[devIndex];  // prendi il semaforo del dispositivo
   (*semPTR)--;  // fai la P sul semaforo
   stato->pc_epc += 4; 
-  pcb_attuale->p_s = *stato;
+  pcb_attuale->p_s = *stato;  
   insertBlocked(semPTR, pcb_attuale);  // inseisci il processo nei bloccati
   current_process[p_id] = NULL;         //  rimuovi il processo corrente dalla lista dei processi attivi
   pcb_attuale->p_time = getTime(p_id);  // update tempo di esecuzione
@@ -247,6 +245,8 @@ void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
   LDST(stato);
 }
 extern void klog_print(char *str);
+
+
 void syscallHandler(state_t *stato){
 
 // QUI VERIFICHIAMO SE E' in kernel mode
@@ -260,7 +260,7 @@ int registro = stato->reg_a0;
 if (registro > 0){
   passupordie(GENERALEXCEPT, stato);
 }
-if (!(stato->status & MSTATUS_MPP_MASK)) { // E' in user mode (fase 3??)
+if (!(stato->status & MSTATUS_MPP_MASK)) { // E' in user mode, quindi dobbiamo gestire l'eccezione..
   // allora dobbiamo fare un'azione descritta nella pagina 7 del pdf
   stato->cause = PRIVINSTR;
   exceptionHandler();
@@ -305,7 +305,7 @@ switch (registro){
     break;
    default:
     // PROGRAM TRAP per syscall invalida, fix opcode?
-    state->cause = GENERALEXCEPT;
+    stato->cause = GENERALEXCEPT;
     exceptionHandler();
     break;
    }

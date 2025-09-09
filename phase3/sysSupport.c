@@ -42,7 +42,7 @@ int printTerminal(char* msg, int lenMsg, int term) {
     termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
     unsigned int status;
     int charSent = 0;
-    while (charSent < lenMsg) { // loop di un carattere alla volta
+    while (charSent < lenMsg) { // loop di un carattere alla volta per costruire questa funzione abbiamo guardato print
         unsigned int value = PRINTCHR | (((unsigned int)*msg) << 8);
         status = SYSCALL(DOIO, (int)&devReg->transm_command, (int)value, 0);
         if ((status & 0xFF) != CHARRECV) {
@@ -75,7 +75,7 @@ int printPrinter(char* msg, int length, int devNo) {
 int inputFromTerminal(char* addr, int term) {
     termreg_t* devReg = (termreg_t*)DEV_REG_ADDR(IL_TERMINAL, term);
     int str_len = 0;
-    while (1) { // legge finché non \n
+    while (1) { // legge finché non \n 
         int status = SYSCALL(DOIO, (int)&devReg->recv_command, RECEIVECHAR, 0);
         if ((status & 0xFF) != CHARRECV) {
             return -status;
@@ -96,7 +96,7 @@ void writeDevice(state_t *stato, int asid, int type){
 
     if((unsigned int)vAddrMSG < UPROCSTARTADDR || 
        ((unsigned int)vAddrMSG + str_len) > USERSTACKTOP || 
-       str_len < 0 || str_len > MAXSTRLENG) {
+       str_len < 0 || str_len > MAXSTRLENG) { // abbiamo usato la tabella
         TerminateSYS(asid);
     }
 
@@ -163,7 +163,6 @@ void generalExceptionHandler(){
     state_t* state = &(sup->sup_exceptState[GENERALEXCEPT]);
 
     unsigned int exccode = state->cause & GETEXECCODE;
-
     if (exccode != SYSEXCEPTION) {
         supportTrapHandler(sup->sup_asid);   // Program Trap handler 
         return;

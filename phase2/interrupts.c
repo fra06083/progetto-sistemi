@@ -62,7 +62,7 @@ void handleDeviceInterrupt(int intLine, state_t *stato){
     // Gestione per i terminali 
     if (intLine == 7) { 
         termreg_t *termReg = (termreg_t *)devAddr;
-        unsigned int trans_stat = termReg->transm_status & 0xFF;
+        unsigned int trans_stat = termReg->transm_status & 0xFF; // 0xFF per prendere i primi 8 bit maschera terminale
         unsigned int recv_stat = termReg->recv_status & 0xFF;
         int *semIO = NULL;
 
@@ -119,19 +119,18 @@ void handleDeviceInterrupt(int intLine, state_t *stato){
 }
 
 
-// Gestione del Process Local Timer (PLT) — Sezione 7.2
+// Gestione del Process Local Timer (PLT) — Sezione 7.2; questo viene eseguito quando scade il time slice di un processo
 void handlePLTInterrupt(state_t *stato) {
     ACQUIRE_LOCK(&global_lock);
     int cpuid = getPRID();
     setTIMER(TIMESLICE * (*(cpu_t *)TIMESCALEADDR)); 
-    // setTIMER(TIMESLICE);
     //Calcolo tempo utilizzato
     current_process[cpuid]->p_time += getTime(cpuid);   // calcoliamo il tempo di esecuzione
     current_process[cpuid]->p_s = *stato;               // copiamo lo stato del processo corrente
     insertProcQ(&pcbReady, current_process[cpuid]);     // mettiamo il processo corrente nella ready queue
     current_process[getPRID()] = NULL;
     RELEASE_LOCK(&global_lock);
-    scheduler();     // Selezione di un nuovo processo da eseguire
+    scheduler();     // Selezione di un nuovo processo da eseguire ROUND ROBIN
 }
 
 
