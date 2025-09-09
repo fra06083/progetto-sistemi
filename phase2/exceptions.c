@@ -185,6 +185,7 @@ void DoIO(state_t *stato, unsigned int p_id){
   }
   /* P semplificata in i/o modificato perché binari */
   int* semPTR = &sem[devIndex];  // prendi il semaforo del dispositivo
+  (*semPTR)--;  // fai la P sul semaforo
   stato->pc_epc += 4; 
   pcb_attuale->p_s = *stato;
   insertBlocked(semPTR, pcb_attuale);  // inseisci il processo nei bloccati
