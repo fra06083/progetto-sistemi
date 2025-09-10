@@ -9,14 +9,16 @@ process count, Global Lock, blocked PCBs lists/pointers, etc.).
 4. exceptions.c This module implements the TLB, Program Trap, and SYSCALL exception
 handlers. Furthermore, this module will contain the provided skeleton TLB-Refill event handler
 (e.g. uTLB_RefillHandler)
-
+MSTATUS_MPP_M	Imposta kernel mode
+MSTATUS_MPIE_MASK	Imposta lo stato precedente degli interrupt dopo trap
+MSTATUS_MIE	configureCPUs()	Abilita globalmente gli interrupt della CPU
+MIE_ALL	createFirstProcess()	Abilita tutti gli interrupt della macchina per il processo
 */
 #include "./headers/initial.h"
 extern void print(char *msg);
 extern void p3test();
-//#include "../phase3/headers/initProc.h" // Phase 3 test
 // #include "./p2test.c" // Phase 2 test
- //DEFINIZIONE DELLE VARIABILI GLOBALI
+//DEFINIZIONE DELLE VARIABILI GLOBALI
 // FUNZIONI DI CONFIGURAZIONE
 void configureIRT() {
     // Calcolo la maschera dei core (es. con 2 CPU -> 0b11)
@@ -45,7 +47,7 @@ void configurePassupVector() {
       passupvector->exception_stackPtr = 0x20020000 + (i * PAGESIZE);
     }
     passupvector->exception_handler = (memaddr)exceptionHandler;
-    passupvector++; // teoricamente dovremmo fare passupvector += i*0x10 + PASSUPVECTOR? però non funziona in questo modo
+    passupvector++;
   }
 }
 
@@ -72,8 +74,8 @@ void createFirstProcess() {
   RAMTOP(primo_processo->p_s.reg_sp);  // Set SP to last RAM frame
 
   // Enable interrupts and kernel mode
-  primo_processo->p_s.mie = MIE_ALL;
-  primo_processo->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M;
+  primo_processo->p_s.mie = MIE_ALL; // enabling interrupt
+  primo_processo->p_s.status = MSTATUS_MPIE_MASK | MSTATUS_MPP_M; // usiamo la maschera e facciamo or con MPP_M
   primo_processo->p_s.pc_epc = (memaddr)p3test;
   insertProcQ(&pcbReady, primo_processo);
   process_count++;

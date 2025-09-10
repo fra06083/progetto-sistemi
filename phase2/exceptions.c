@@ -54,7 +54,6 @@ void exceptionHandler()
       } else if ((getExcepCode >= 0 && getExcepCode <= 7) || 
                   getExcepCode == 9 || getExcepCode == 10 || 
                  (getExcepCode >= 12 && getExcepCode <= 23)) {
-          klog_print("passupordie!!");
           passupordie(GENERALEXCEPT, stato); // general exception
       }
     }
@@ -114,7 +113,7 @@ void P(state_t* stato, unsigned int p_id) {
       // Blocca il processo corrente
       pcb_t* pcbBlocked = current_process[p_id];
       insertBlocked(semaforo, pcbBlocked);  // inserisci il processo nella lista dei bloccati
-      block(stato, p_id, pcbBlocked);  // blocca il processo corrente
+      block(stato, p_id, pcbBlocked);  // blocca il processo corrente, aggiorna tempo e stato
       RELEASE_LOCK(&global_lock);
       scheduler(); 
       return;  // ritorna e non continuare l'esecuzione del processo corrente
@@ -225,7 +224,7 @@ void GetSupportData(state_t *stato, unsigned int p_id){
   LDST(stato); 
 }
 
-void GetProcessId(state_t *stato, unsigned int p_id){       //Rivedere ok
+void GetProcessId(state_t *stato, unsigned int p_id){      
   //Se il parent del pcb che ha fatto la syscall è NULL, allora in reg_a0 ci deve essere il suo PID
   ACQUIRE_LOCK(&global_lock);
   int parent = stato->reg_a1;

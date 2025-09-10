@@ -32,11 +32,13 @@ void check_updateTLB(pteEntry_t *pte){
 }
 
 // Dispatch I/O su flash device con protezione dei semafori
+// read = 1 -> lettura, read = 0 -> scrittura
 void FlashRW(int asid, memaddr frameAddr, int block, int read){
     int semIndex = findDevice((memaddr*) getFlashAddr(asid));
     acquireDevice(asid, semIndex);
     dtpreg_t *devreg = (dtpreg_t *) getFlashAddr(asid);
     int commandAddr = (int)&devreg->command;
+    // E' un'operazione di lettura o scrittura?
     int commandValue = (read ? FLASHREAD : FLASHWRITE) | (block << 8);
     devreg->data0 = frameAddr;
     int status = SYSCALL(DOIO, commandAddr, commandValue, 0);
